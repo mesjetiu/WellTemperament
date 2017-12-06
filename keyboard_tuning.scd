@@ -39,18 +39,18 @@ var note_to_tune = nil; // tecla que va a ser afinada
 // Muestra en pantalla la afinación actual
 var show_tune = {arg last_tuned = nil;
 	("\nDesviaciones en cents respecto a ET12:\n" ++
-	"C  = " ++ tune_notes[0].asString ++ "\n" ++
-	"C# = " ++ tune_notes[1].asString ++ "\n" ++
-	"D  = " ++ tune_notes[2].asString ++ "\n" ++
-	"C# = " ++ tune_notes[3].asString ++ "\n" ++
-	"E  = " ++ tune_notes[4].asString ++ "\n" ++
-	"F  = " ++ tune_notes[5].asString ++ "\n" ++
-	"F# = " ++ tune_notes[6].asString ++ "\n" ++
-	"G  = " ++ tune_notes[7].asString ++ "\n" ++
-	"G# = " ++ tune_notes[8].asString ++ "\n" ++
-	"A  = " ++ tune_notes[9].asString ++ "\n" ++
-	"A# = " ++ tune_notes[10].asString ++ "\n" ++
-	"B  = " ++ tune_notes[11].asString ++ "\n"
+	"C  = " ++ (tune_notes[0]*100).asString ++ "\n" ++
+	"C# = " ++ (tune_notes[1]*100).asString ++ "\n" ++
+	"D  = " ++ (tune_notes[2]*100).asString ++ "\n" ++
+	"C# = " ++ (tune_notes[3]*100).asString ++ "\n" ++
+	"E  = " ++ (tune_notes[4]*100).asString ++ "\n" ++
+	"F  = " ++ (tune_notes[5]*100).asString ++ "\n" ++
+	"F# = " ++ (tune_notes[6]*100).asString ++ "\n" ++
+	"G  = " ++ (tune_notes[7]*100).asString ++ "\n" ++
+	"G# = " ++ (tune_notes[8]*100).asString ++ "\n" ++
+	"A  = " ++ (tune_notes[9]*100).asString ++ "\n" ++
+	"A# = " ++ (tune_notes[10]*100).asString ++ "\n" ++
+	"B  = " ++ (tune_notes[11]*100).asString ++ "\n"
 	).postln;
 };
 
@@ -74,7 +74,7 @@ var reset_tune_note = {arg note, cents = 0;
 	octavas_bajas.removeAt(0);
 	octavas_altas = (note,note+12..127);
 	(octavas_bajas++octavas_altas).do({arg i;
-		tune_notes[i] = cents;
+		tune_notes[i] = cents/100;
 	});
 };
 
@@ -119,8 +119,29 @@ notes = Array.newClear(128);
 tune_notes = Array.fill(128,0);
 
 
+/// Funciones globales para acceso del usario
+
+~enter_tune = {arg array_tune;
+	array_tune.do({arg value, note;
+		reset_tune_note.value(note, value);
+	});
+	notes.do({arg tono, index;
+		if (tono != nil, {
+			tono.set(\freq, (index+tune_notes[index]).midicps);
+		});
+	});
+	show_tune.value;
+};
+
+~reset_tune = {
+	~enter_tune.value([0,0,0,0,0,0,0,0,0,0,0,0]);
+};
+
 /// FIN DE DECLARACIONES E INICIALIZACIONES ////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
 
 
 /// Preparación del teclado MIDI ///////////////////////////////////////////////////////////////////////////
@@ -176,3 +197,7 @@ MIDIdef.noteOff(\tune_down_off, {
 
 show_tune.value;
 )
+
+~enter_tune.value([1,3,20,1,0,-1,3,2,5,4,3,1]);
+
+~reset_tune.value;
