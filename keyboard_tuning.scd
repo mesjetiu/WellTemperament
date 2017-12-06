@@ -5,31 +5,6 @@ MIDIClient.init;
 MIDIIn.connectAll;
 )
 
-MIDIdef.trace(true);
-
-
-// Definimos el sintetizador de notas. Consta de 10 armónicos, cada uno con un volumen independiente y modificable en tiempo real.
-(
-SynthDef(\tono, {
-	arg freq = 440, amp = 0.5, gate = 1, har1=1, har2=1, har3=1, har4=1, har5=1, har6=1, har7=1, har8=1, har9=1, har10=1;
-	var sig, env, harm;
-	env = Env.asr(0.01, 1, 0.2).kr(2, gate);
-	sig = SinOsc.ar(freq,0,har1);
-	sig = sig + SinOsc.ar(freq*2,0,har2);
-	sig = sig + SinOsc.ar(freq*3,0,har3);
-	sig = sig + SinOsc.ar(freq*4,0,har4);
-	sig = sig + SinOsc.ar(freq*5,0,har5);
-	sig = sig + SinOsc.ar(freq*6,0,har6);
-	sig = sig + SinOsc.ar(freq*7,0,har7);
-	sig = sig + SinOsc.ar(freq*8,0,har8);
-	sig = sig + SinOsc.ar(freq*9,0,har9);
-	sig = sig + SinOsc.ar(freq*10,0,har10);
-	sig = sig * 0.005 * amp * env;
-	Out.ar(0, sig!2);
-}).add;
-)
-
-
 (
 var notes; // Almacena en cada tecla MIDI el sintetizador que suena al pulsarse la tecla. Se elimina al levantar la tecla.
 var tune_notes; // Almacena en cada tecla MIDI la desviación en cents respecto a ET12.
@@ -53,7 +28,6 @@ var show_tune = {arg last_tuned = nil;
 	"B  = " ++ (tune_notes[11]*100).asString ++ "\n"
 	).postln;
 };
-
 
 // Aplica una diferencia de afinación en todas las octavas de una nota dada.
 var retune_note = {arg note, dif_cents;
@@ -137,12 +111,30 @@ tune_notes = Array.fill(128,0);
 	~enter_tune.value([0,0,0,0,0,0,0,0,0,0,0,0]);
 };
 
-/// FIN DE DECLARACIONES E INICIALIZACIONES ////////////////////////////////////////////////////////////////
+/// FIN DE DECLARACIONES E INICIALIZACIONES DE VARIABLES////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 
+// Definimos el sintetizador de notas. Consta de 10 armónicos, cada uno con un volumen independiente y modificable en tiempo real.
 
+SynthDef(\tono, {
+	arg freq = 440, amp = 0.5, gate = 1, har1=1, har2=1, har3=1, har4=1, har5=1, har6=1, har7=1, har8=1, har9=1, har10=1;
+	var sig, env, harm;
+	env = Env.asr(0.01, 1, 0.2).kr(2, gate);
+	sig = SinOsc.ar(freq,0,har1);
+	sig = sig + SinOsc.ar(freq*2,0,har2);
+	sig = sig + SinOsc.ar(freq*3,0,har3);
+	sig = sig + SinOsc.ar(freq*4,0,har4);
+	sig = sig + SinOsc.ar(freq*5,0,har5);
+	sig = sig + SinOsc.ar(freq*6,0,har6);
+	sig = sig + SinOsc.ar(freq*7,0,har7);
+	sig = sig + SinOsc.ar(freq*8,0,har8);
+	sig = sig + SinOsc.ar(freq*9,0,har9);
+	sig = sig + SinOsc.ar(freq*10,0,har10);
+	sig = sig * 0.005 * amp * env;
+	Out.ar(0, sig!2);
+}).add;
 
 /// Preparación del teclado MIDI ///////////////////////////////////////////////////////////////////////////
 
