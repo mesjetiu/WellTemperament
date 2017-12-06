@@ -24,13 +24,10 @@ SynthDef(\tono, {
 	sig = sig + SinOsc.ar(freq*8,0,har8);
 	sig = sig + SinOsc.ar(freq*9,0,har9);
 	sig = sig + SinOsc.ar(freq*10,0,har10);
-	sig = sig * 0.01 * amp * env;
+	sig = sig * 0.005 * amp * env;
 	Out.ar(0, sig!2);
 }).add;
 )
-
-a = Synth(\tono, [\freq, 200]);
-a.set(\freq, 300)
 
 
 (
@@ -38,6 +35,25 @@ var notes; // Almacena en cada tecla MIDI el sintetizador que suena al pulsarse 
 var tune_notes; // Almacena en cada tecla MIDI la desviación en cents respecto a ET12.
 var count_notes = 0; // Lleva el recuento de notas que están activadas. Cuando es "0" la primera en activarse es la que pasa a ser afinada:
 var note_to_tune = nil; // tecla que va a ser afinada
+
+// Muestra en pantalla la afinación actual
+var show_tune = {arg last_tuned = nil;
+	("\nDesviaciones en cents respecto a ET12:\n" ++
+	"C  = " ++ tune_notes[0].asString ++ "\n" ++
+	"C# = " ++ tune_notes[1].asString ++ "\n" ++
+	"D  = " ++ tune_notes[2].asString ++ "\n" ++
+	"C# = " ++ tune_notes[3].asString ++ "\n" ++
+	"E  = " ++ tune_notes[4].asString ++ "\n" ++
+	"F  = " ++ tune_notes[5].asString ++ "\n" ++
+	"F# = " ++ tune_notes[6].asString ++ "\n" ++
+	"G  = " ++ tune_notes[7].asString ++ "\n" ++
+	"G# = " ++ tune_notes[8].asString ++ "\n" ++
+	"A  = " ++ tune_notes[9].asString ++ "\n" ++
+	"A# = " ++ tune_notes[10].asString ++ "\n" ++
+	"B  = " ++ tune_notes[11].asString ++ "\n"
+	).postln;
+};
+
 
 // Aplica una diferencia de afinación en todas las octavas de una nota dada.
 var retune_note = {arg note, dif_cents;
@@ -65,34 +81,38 @@ var reset_tune_note = {arg note, cents = 0;
 // Rutina para afinar al presionar las teclas asignadas
 var routine_tune_up = Routine({
 	var step = 0.1; // valor en cents de cada paso de afinación
-	var octavas_bajas = (note_to_tune, note_to_tune-12..0);
-	var octavas_altas = (note_to_tune, note_to_tune+12..127);
-	octavas_bajas.removeAt(0);
-	loop{
-		(octavas_bajas++octavas_altas).do({arg i;
-			tune_notes[i] = tune_notes[i] + (step/100);
-			if (notes[i] != nil, {
-				notes[i].set(\freq, (i+tune_notes[i]).midicps);
+	if (note_to_tune != nil, {
+		var octavas_bajas = (note_to_tune, note_to_tune-12..0);
+		var octavas_altas = (note_to_tune, note_to_tune+12..127);
+		octavas_bajas.removeAt(0);
+		loop{
+			(octavas_bajas++octavas_altas).do({arg i;
+				tune_notes[i] = tune_notes[i] + (step/100);
+				if (notes[i] != nil, {
+					notes[i].set(\freq, (i+tune_notes[i]).midicps);
+				});
 			});
-		});
-		wait(0.05);
-	};
+			wait(0.05);
+		};
+	});
 });
 
 var routine_tune_down = Routine({
 	var step = 0.1; // valor en cents de cada paso de afinación
-	var octavas_bajas = (note_to_tune, note_to_tune-12..0);
-	var octavas_altas = (note_to_tune, note_to_tune+12..127);
-	octavas_bajas.removeAt(0);
-	loop{
-		(octavas_bajas++octavas_altas).do({arg i;
-			tune_notes[i] = tune_notes[i] - (step/100);
-			if (notes[i] != nil, {
-				notes[i].set(\freq, (i+tune_notes[i]).midicps);
+	if (note_to_tune != nil, {
+		var octavas_bajas = (note_to_tune, note_to_tune-12..0);
+		var octavas_altas = (note_to_tune, note_to_tune+12..127);
+		octavas_bajas.removeAt(0);
+		loop{
+			(octavas_bajas++octavas_altas).do({arg i;
+				tune_notes[i] = tune_notes[i] - (step/100);
+				if (notes[i] != nil, {
+					notes[i].set(\freq, (i+tune_notes[i]).midicps);
+				});
 			});
-		});
-		wait(0.05);
-	};
+			wait(0.05);
+		};
+	});
 });
 
 notes = Array.newClear(128);
@@ -136,6 +156,7 @@ MIDIdef.noteOn(\tune_up_on, {
 MIDIdef.noteOff(\tune_up_off, {
 	arg val, chan, src;
 	routine_tune_up.stop;
+	show_tune.value;
 }, 86 // Responde sólo a la tecla D5
 );
 
@@ -149,10 +170,9 @@ MIDIdef.noteOn(\tune_down_on, {
 MIDIdef.noteOff(\tune_down_off, {
 	arg val, chan, src;
 	routine_tune_down.stop;
+	show_tune.value;
 }, 85 // Responde sólo a la tecla C#5
 );
 
-
-// reset_tune_note.value(48,0);
-
+show_tune.value;
 )
