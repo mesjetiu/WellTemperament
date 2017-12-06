@@ -1,11 +1,31 @@
+/*
+    2017. Carlos Arturo Guerra Parra
+    License GPL-3.0 or later (http://www.gnu.org/licenses/gpl-3.0).
+*/
+
+
+
 s.boot;
 
+
+// Inicializa MIDI
 (
 MIDIClient.init;
 MIDIIn.connectAll;
 )
 
+
+/// Carga todo el programa:
+
 (
+// Pueden cambiarse los siguientes parámetros:
+var first_key = 36; // C1
+var last_key = 84;  // C5
+var keyboard_src = 1;  // G.O. de Content
+var tune_up_key = 86;  // D5
+var tune_down_key = 85;  // C#5
+
+// Estructura de datos:
 var notes; // Almacena en cada tecla MIDI el sintetizador que suena al pulsarse la tecla. Se elimina al levantar la tecla.
 var tune_notes; // Almacena en cada tecla MIDI la desviación en cents respecto a ET12.
 var count_notes = 0; // Lleva el recuento de notas que están activadas. Cuando es "0" la primera en activarse es la que pasa a ser afinada:
@@ -107,7 +127,7 @@ tune_notes = Array.fill(128,0);
 	show_tune.value;
 };
 
-~reset_tune = {
+~reset_tune_TE12 = {
 	~enter_tune.value([0,0,0,0,0,0,0,0,0,0,0,0]);
 };
 
@@ -145,7 +165,7 @@ MIDIdef.noteOn(\tecla_on, {
 	notes[chan] = Synth(\tono, [\freq, (chan+tune_notes[chan]).midicps]);
 	if (count_notes == 0, {note_to_tune = chan}); // La primera nota pulsada en el teclado polifónicamente hablando, será la que se afinará y la introducimos en "note_to_tune"
 	count_notes = count_notes + 1;
-}, (36..84));
+}, (first_key..last_key), keyboard_src);
 
 
 MIDIdef.noteOff(\tecla_off, {
@@ -154,7 +174,7 @@ MIDIdef.noteOff(\tecla_off, {
 	notes[chan] = nil;
 	count_notes = count_notes - 1;
 	if (note_to_tune == chan, {note_to_tune = nil}); // Si la tecla levantada es la que estaba para afinar, la quitamos de "note_to_tune"
-}, (36..84));
+}, (first_key..last_key), keyboard_src);
 
 // Teclas para afinar
 // Al igual que almacenamos externamente los sintetizadores que se inician con \tecla_on y se terminan con \tecla_off, hay que crear unas variables externas para almacenar las rutinas de afinación para \tune_up_on, \tune_up_off, \tune_down_on y \tune_down_off
@@ -163,28 +183,33 @@ MIDIdef.noteOn(\tune_up_on, {
 	arg val, chan, src;
 	routine_tune_up.reset;
 	routine_tune_up.play;
-}, 86 // Responde sólo a la tecla D5
+}, tune_up_key
 );
 
 MIDIdef.noteOff(\tune_up_off, {
 	arg val, chan, src;
 	routine_tune_up.stop;
 	show_tune.value;
-}, 86 // Responde sólo a la tecla D5
+}, tune_up_key
 );
 
 MIDIdef.noteOn(\tune_down_on, {
 	arg val, chan, src;
 	routine_tune_down.reset;
 	routine_tune_down.play;
-}, 85 // Responde sólo a la tecla C#5
+}, tune_down_key
 );
 
 MIDIdef.noteOff(\tune_down_off, {
 	arg val, chan, src;
 	routine_tune_down.stop;
 	show_tune.value;
-}, 85 // Responde sólo a la tecla C#5
+}, tune_down_key
+);
+
+MIDIdef.noteOn(\reset_TE12, {
+	~reset_tune_TE12.value;
+}, 96 // Responde sólo a la tecla C6
 );
 
 show_tune.value;
