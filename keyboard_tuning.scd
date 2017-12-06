@@ -24,7 +24,7 @@ SynthDef(\tono, {
 	sig = sig + SinOsc.ar(freq*8,0,har8);
 	sig = sig + SinOsc.ar(freq*9,0,har9);
 	sig = sig + SinOsc.ar(freq*10,0,har10);
-	sig = sig * 0.1 * amp * env;
+	sig = sig * 0.01 * amp * env;
 	Out.ar(0, sig!2);
 }).add;
 )
@@ -33,19 +33,28 @@ SynthDef(\tono, {
 (
 var notes; // Almacena en cada tecla MIDI el sintetizador que suena al pulsarse la tecla. Se elimina al levantar la tecla.
 var tune_notes; // Almacena en cada tecla MIDI la desviación en cents respecto a ET12.
-var note_C, note_Cs, note_D, note_Ds, note_E, note_F, note_Fs, note_G, note_Gs, note_A, note_As, note_B;
+var count_notes = 0; // Lleva el recuento de notas que están activadas. Cuando es "0" la primera en activarse es la que pasa a ser afinada:
+var note_to_tune = nil; // tecla que va a ser afinada
 
 // Aplica una diferencia de afinación en todas las octavas de una nota dada.
 var retune_note = {arg note, dif_cents;
 	var dif_tune = dif_cents / 100;
-	note.do({arg i;
+	var octavas_bajas, octavas_altas;
+	octavas_bajas = (note,note-12..0);
+	octavas_bajas.removeAt(0);
+	octavas_altas = (note,note+12..127);
+	(octavas_bajas++octavas_altas).do({arg i;
 		tune_notes[i] = tune_notes[i] + dif_tune;
-	})
+	});
 };
 
 // Resetea la afinación de una nota a un valor de desviación concreto (por defecto "0")
 var reset_tune_note = {arg note, cents = 0;
-	note.do({arg i;
+	var octavas_bajas, octavas_altas;
+	octavas_bajas = (note,note-12..0);
+	octavas_bajas.removeAt(0);
+	octavas_altas = (note,note+12..127);
+	(octavas_bajas++octavas_altas).do({arg i;
 		tune_notes[i] = cents;
 	});
 };
@@ -54,30 +63,34 @@ var reset_tune_note = {arg note, cents = 0;
 notes = Array.newClear(128);
 tune_notes = Array.fill(128,0);
 
-// Cada nota corresponde a todas las teclas homónimas del teclado (en un array)
-note_C = (0,12..127);
-note_Cs = (1,13..127);
-note_D = (2,14..127);
-note_Ds = (3,15..127);
-note_E = (4,16..127);
-note_F = (5,17..127);
-note_Fs = (6,18..127);
-note_G = (7,19..127);
-note_Gs = (8,20..127);
-note_A = (9,21..127);
-note_As = (10,22..127);
-note_B = (11,23..127);
 
 /// FIN DE DECLARACIONES E INICIALIZACIONES ////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
+/// Preparación del teclado MIDI ///////////////////////////////////////////////////////////////////////////
+// Parte del teclado que se usa para tocar música (dejamos libre la quinta octava)
+MIDIdef.noteOn(\tecla_on, {
+	arg val, chan, src;
+	notes[chan] = Synth(\tono, [\freq, (chan+tune_notes[chan]).midicps]);
+	if (count_notes == 0, {note_to_tune = chan}); // La primera nota pulsada en el teclado polifónicamente hablando, será la que se afinará y la introducimos en "note_to_tune"
+	count_notes = count_notes + 1;
+}, (36..84));
+MIDIdef.noteOff(\tecla_off, {
+	arg val, chan, src;
+	notes[chan].set(\gate, 0);
+	notes[chan] = nil;
+	count_notes = count_notes - 1;
+	if (note_to_tune == chan, {note_to_tune = nil}); // Si la tecla levantada es la que estaba para afinar, la quitamos de "note_to_tune"
+}, (36..84));
+
+// Teclas para afinar
+// Al igual que almacenamos externamente los sintetizadores que se inician con \tecla_on y se terminan con \tecla_off, hay que crear unas variables externas para almacenar las rutinas de afinación para \tune_up_on, \tune_up_off, \tune_down_on y \tune_down_off
+
 
 // Ejemplo de cambio en la afinación de una nota
-retune_note.value(note_C, -21);
-reset_tune_note.value(note_D, 2);
+retune_note.value(60, -21);
+reset_tune_note.value(48,0);
 
 tune_notes;
 )
-
-Array.fill(10,nil)
