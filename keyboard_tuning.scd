@@ -116,7 +116,7 @@ var reset_tune_note = {arg note, cents = 0;
 var partitio = {
 	if ((first_pushed_notes[0] != nil) && (first_pushed_notes[1] != nil), {
 		var note_1, note_2, note_temp; // las notas que quedarán fijas.
-		var fifths_num = 0; // Número de quintas a repartir;
+		var fifths_num = 1; // Número de quintas a repartir;
 		var notes_to_tune = Array.newClear(12); // notas a afinar
 		var wolf; // Cantidad de error respecto a ET12 a repartir entre las quintas
 		// reducimos a la octava 1 ambas notas y las almacenamos
@@ -126,7 +126,7 @@ var partitio = {
 		note_temp = note_1 + 7;
 		if (note_temp > 11, {note_temp = note_temp - 12});
 		({note_temp != note_2}).while({
-			notes_to_tune[fifths_num] = note_temp;  // y almacenamos las notas a afinar
+			notes_to_tune[fifths_num-1] = note_temp;  // y almacenamos las notas a afinar
 			note_temp = note_temp + 7; // subimos note_1 una quinta
 			if (note_temp > 11, {note_temp = note_temp - 12});
 			fifths_num = fifths_num + 1; // vamos contando las quintas a afinar
@@ -135,8 +135,8 @@ var partitio = {
 		wolf = ((tune_notes[note_2]) - (tune_notes[note_1])) * 100;
 		wolf = wolf / fifths_num; // wolf ahora almacena el error de una sóla quinta
 		// Afinamos las quintas
-		notes_to_tune.do({arg i;
-			if (i != nil, {retune_note.value(i, wolf)});
+		notes_to_tune.do({arg i, n;
+			if (i != nil, {reset_tune_note.value(i, wolf*(n+1))});
 		});
 		print_tune.value;
 	});
