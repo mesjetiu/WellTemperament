@@ -35,21 +35,44 @@ var count_notes = 0; // Lleva el recuento de notas que están activadas. Cuando 
 var first_pushed_notes = Array.newClear(2); // Array que almacena las 2 primeras notas pulsadas. [0] se usa para afinar la primera nota pulsada. [0] y [1] se usan para realizar el reparto entre las quintas intermedias.
 
 // Muestra en pantalla la afinación actual
-var show_tune = {arg last_tuned = nil;
-	("\nDesviaciones en cents respecto a ET12:\n" ++
-	"C  = " ++ (tune_notes[0]*100).asString ++ "\n" ++
-	"C# = " ++ (tune_notes[1]*100).asString ++ "\n" ++
-	"D  = " ++ (tune_notes[2]*100).asString ++ "\n" ++
-	"D# = " ++ (tune_notes[3]*100).asString ++ "\n" ++
-	"E  = " ++ (tune_notes[4]*100).asString ++ "\n" ++
-	"F  = " ++ (tune_notes[5]*100).asString ++ "\n" ++
-	"F# = " ++ (tune_notes[6]*100).asString ++ "\n" ++
-	"G  = " ++ (tune_notes[7]*100).asString ++ "\n" ++
-	"G# = " ++ (tune_notes[8]*100).asString ++ "\n" ++
-	"A  = " ++ (tune_notes[9]*100).asString ++ "\n" ++
-	"A# = " ++ (tune_notes[10]*100).asString ++ "\n" ++
-	"B  = " ++ (tune_notes[11]*100).asString ++ "\n"
-	).postln;
+var print_tune = {arg last_tuned = nil, round = 0.1;
+	var tn = tune_notes;
+	var name = ['C ','C#','D ','D#','E ','F ','F#','G ','G#','A ','A#','B '];
+	"D. ET    | Quintas      | Terceras M.  | Terceras m.  ".postln;
+	"=========|==============|==============|==============".postln;
+
+	name.do({arg note, i;
+		var temp;
+		postln(
+			note ++ "= " ++ (tn[i]*100).round(round) ++
+			{var st = ""; (5-((tn[i]*100).round(round)).asString.size).do({st = st ++ " "}); st;
+			}.value ++ "| " ++
+
+			note ++ "-" ++ name[(i+7).mod(12)] ++ "= " ++
+			(((tn[i+7]-tn[i]+7)-((3/2).ratiomidi)*100)).round(round) ++
+			{var st = "";
+				(6-((((tn[i+7]-tn[i]+7)-((3/2).ratiomidi)*100)).round(round)).asString.size).do({
+					st = st ++ " "
+				}); st;
+			}.value ++ "| " ++
+
+			note ++ "-" ++ name[(i+4).mod(12)] ++ "= " ++
+			(((tn[i+4]-tn[i]+4)-((5/4).ratiomidi)*100)).round(round) ++
+			{var st = "";
+				(6-((((tn[i+4]-tn[i]+4)-((5/4).ratiomidi)*100)).round(round)).asString.size).do({
+					st = st ++ " "
+				}); st;
+			}.value ++ "| " ++
+
+			note ++ "-" ++ name[(i+4).mod(12)] ++ "= " ++
+			(((tn[i+3]-tn[i]+3)-((6/5).ratiomidi)*100)).round(round);
+
+		);
+	});
+
+	"=========|==============|==============|==============".postln;
+
+	"OK"
 };
 
 // Aplica una diferencia de afinación en todas las octavas de una nota dada.
@@ -115,7 +138,7 @@ var partitio = {
 		notes_to_tune.do({arg i;
 			if (i != nil, {retune_note.value(i, wolf)});
 		});
-		show_tune.value;
+		print_tune.value;
 	});
 };
 
@@ -155,7 +178,7 @@ tune_notes = Array.fill(128,0);
 			tono.set(\freq, (index+tune_notes[index]).midicps);
 		});
 	});
-	show_tune.value;
+	print_tune.value;
 };
 
 ~reset_tune_TE12 = {
@@ -226,7 +249,7 @@ MIDIdef.noteOn(\tune_up_on, {
 MIDIdef.noteOff(\tune_up_off, {
 	arg val, chan, src;
 	routine_tune_up.stop;
-	show_tune.value;
+	print_tune.value;
 }, tune_up_key
 );
 
@@ -240,7 +263,7 @@ MIDIdef.noteOn(\tune_down_on, {
 MIDIdef.noteOff(\tune_down_off, {
 	arg val, chan, src;
 	routine_tune_down.stop;
-	show_tune.value;
+	print_tune.value;
 }, tune_down_key
 );
 
@@ -254,7 +277,7 @@ MIDIdef.noteOn(\reset_TE12, {
 }, 96 // Responde sólo a la tecla C6
 );
 
-show_tune.value;
+print_tune.value;
 )
 
 
