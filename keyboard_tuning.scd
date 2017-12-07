@@ -1,12 +1,12 @@
 /*
-    2017. Carlos Arturo Guerra Parra
+    2017. Carlos Arturo Guerra Parra (carlosarturoguerra@gmail.com)
     License GPL-3.0 or later (http://www.gnu.org/licenses/gpl-3.0).
 */
 
 
 
 /*
-El siguiente programa permite temperar el teclado desde el mismo teclado usando dos teclas reservadas para subir y bajar el tono mientras se toca.
+El siguiente programa permite temperar el teclado desde el mismo teclado usando dos teclas reservadas para subir y bajar el tono respectivamente mientras se toca.
 Partimos del temperamento igual. Para reafinar una nota (y todas sus octavas), púlsese la tecla correspondiente asegurándose de que no hay ninguna pulsada en ese momento. Una vez pulsada y sin soltarse pueden pulsarse otras para usarlas de referencia. La tecla D5 sube el tono y C#5 baja el tono (estas teclas pueden cambiarse) mientras son mantenidas. Cada vez que se sueltan las teclas de afinación se muestra en la ventana "Post window" el estado de la afinación.
 La tecla C6 resetea la afinación a temperamento igual.
 */
@@ -14,13 +14,6 @@ La tecla C6 resetea la afinación a temperamento igual.
 
 
 s.boot;
-
-
-// Inicializa MIDI
-(
-MIDIClient.init;
-MIDIIn.connectAll;
-)
 
 
 /// Carga todo el programa:
@@ -32,13 +25,14 @@ var last_key = 84;  // C5
 var keyboard_src = 1;  // G.O. de Content
 var tune_up_key = 86;  // D5
 var tune_down_key = 85;  // C#5
-var tune_octaves = false; // Afina todas las octavas de la nota que afinamos.
+var partitio_key = 87;  // D#
+var tune_octaves = true; // Afina todas las octavas de la nota que afinamos.
 
 // Estructura de datos:
 var notes; // Almacena en cada tecla MIDI el sintetizador que suena al pulsarse la tecla. Se elimina al levantar la tecla.
 var tune_notes; // Almacena en cada tecla MIDI la desviación en cents respecto a ET12.
 var count_notes = 0; // Lleva el recuento de notas que están activadas. Cuando es "0" la primera en activarse es la que pasa a ser afinada:
-var note_to_tune = nil; // tecla que va a ser afinada
+var first_pushed_notes = Array.newClear(2); // Array que almacena las 2 primeras notas pulsadas. [0] se usa para afinar la primera nota pulsada. [0] y [1] se usan para realizar el reparto entre las quintas intermedias.
 
 // Muestra en pantalla la afinación actual
 var show_tune = {arg last_tuned = nil;
@@ -46,7 +40,7 @@ var show_tune = {arg last_tuned = nil;
 	"C  = " ++ (tune_notes[0]*100).asString ++ "\n" ++
 	"C# = " ++ (tune_notes[1]*100).asString ++ "\n" ++
 	"D  = " ++ (tune_notes[2]*100).asString ++ "\n" ++
-	"C# = " ++ (tune_notes[3]*100).asString ++ "\n" ++
+	"D# = " ++ (tune_notes[3]*100).asString ++ "\n" ++
 	"E  = " ++ (tune_notes[4]*100).asString ++ "\n" ++
 	"F  = " ++ (tune_notes[5]*100).asString ++ "\n" ++
 	"F# = " ++ (tune_notes[6]*100).asString ++ "\n" ++
@@ -95,12 +89,42 @@ var reset_tune_note = {arg note, cents = 0;
 	});
 };
 
+// Función para repartir el lobo entre las quintas existentes entre las dos primeras notas pulsadas.
+var partitio = {
+	if ((first_pushed_notes[0] != nil) && (first_pushed_notes[1] != nil), {
+		var note_1, note_2, note_temp; // las notas que quedarán fijas.
+		var fifths_num = 0; // Número de quintas a repartir;
+		var notes_to_tune = Array.newClear(12); // notas a afinar
+		var wolf; // Cantidad de error respecto a ET12 a repartir entre las quintas
+		// reducimos a la octava 1 ambas notas y las almacenamos
+		note_1 = (first_pushed_notes[0],(first_pushed_notes[0]-12)..0).last;
+		note_2 = (first_pushed_notes[1],(first_pushed_notes[1]-12)..0).last;
+		// Calculamos las notas que hay que afinar
+		note_temp = note_1 + 7;
+		if (note_temp > 11, {note_temp = note_temp - 12});
+		({note_temp != note_2}).while({
+			notes_to_tune[fifths_num] = note_temp;  // y almacenamos las notas a afinar
+			note_temp = note_temp + 7; // subimos note_1 una quinta
+			if (note_temp > 11, {note_temp = note_temp - 12});
+			fifths_num = fifths_num + 1; // vamos contando las quintas a afinar
+		});
+		// Calculamos la cantidad de cents que hay que mover cada quinta
+		wolf = ((tune_notes[note_2]) - (tune_notes[note_1])) * 100;
+		wolf = wolf / fifths_num; // wolf ahora almacena el error de una sóla quinta
+		// Afinamos las quintas
+		notes_to_tune.do({arg i;
+			if (i != nil, {retune_note.value(i, wolf)});
+		});
+		show_tune.value;
+	});
+};
+
 // Rutina para afinar al presionar las teclas asignadas
 var routine_tune_up = Routine({
 	var step = 0.1; // valor en cents de cada paso de afinación
-	if (note_to_tune != nil, {
+	if (first_pushed_notes[0] != nil, {
 		loop{
-			retune_note.value(note_to_tune, step);
+			retune_note.value(first_pushed_notes[0], step);
 			wait(0.05);
 			};
 	});
@@ -108,9 +132,9 @@ var routine_tune_up = Routine({
 
 var routine_tune_down = Routine({
 	var step = 0.1; // valor en cents de cada paso de afinación
-	if (note_to_tune != nil, {
+	if (first_pushed_notes[0] != nil, {
 		loop{
-			retune_note.value(note_to_tune, step*(-1));
+			retune_note.value(first_pushed_notes[0], step*(-1));
 			wait(0.05);
 			};
 	});
@@ -138,10 +162,14 @@ tune_notes = Array.fill(128,0);
 	~enter_tune.value([0,0,0,0,0,0,0,0,0,0,0,0]);
 };
 
+
 /// FIN DE DECLARACIONES E INICIALIZACIONES DE VARIABLES////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
+// Inicializamos MIDI
+MIDIClient.init;
+MIDIIn.connectAll;
 
 // Definimos el sintetizador de notas. Consta de 10 armónicos, cada uno con un volumen independiente y modificable en tiempo real.
 
@@ -170,7 +198,8 @@ SynthDef(\tono, {
 MIDIdef.noteOn(\tecla_on, {
 	arg val, chan, src;
 	notes[chan] = Synth(\tono, [\freq, (chan+tune_notes[chan]).midicps]);
-	if (count_notes == 0, {note_to_tune = chan}); // La primera nota pulsada en el teclado polifónicamente hablando, será la que se afinará y la introducimos en "note_to_tune"
+	if (count_notes == 0, {first_pushed_notes[0] = chan});
+	if (count_notes == 1, {first_pushed_notes[1] = chan});
 	count_notes = count_notes + 1;
 }, (first_key..last_key), keyboard_src);
 
@@ -180,7 +209,8 @@ MIDIdef.noteOff(\tecla_off, {
 	notes[chan].set(\gate, 0);
 	notes[chan] = nil;
 	count_notes = count_notes - 1;
-	if (note_to_tune == chan, {note_to_tune = nil}); // Si la tecla levantada es la que estaba para afinar, la quitamos de "note_to_tune"
+	if (first_pushed_notes[0] == chan, {first_pushed_notes[0] = nil});
+	if (first_pushed_notes[1] == chan, {first_pushed_notes[1] = nil});
 }, (first_key..last_key), keyboard_src);
 
 // Teclas para afinar
@@ -214,6 +244,11 @@ MIDIdef.noteOff(\tune_down_off, {
 }, tune_down_key
 );
 
+MIDIdef.noteOn(\partitio, {
+	partitio.value;
+}, partitio_key
+);
+
 MIDIdef.noteOn(\reset_TE12, {
 	~reset_tune_TE12.value;
 }, 96 // Responde sólo a la tecla C6
@@ -221,6 +256,12 @@ MIDIdef.noteOn(\reset_TE12, {
 
 show_tune.value;
 )
+
+
+
+
+
+
 
 ~enter_tune.value([1,3,20,1,0,-1,3,2,5,4,3,1]);
 
