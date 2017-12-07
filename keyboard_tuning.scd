@@ -5,6 +5,14 @@
 
 
 
+/*
+El siguiente programa permite temperar el teclado desde el mismo teclado usando dos teclas reservadas para subir y bajar el tono mientras se toca.
+Partimos del temperamento igual. Para reafinar una nota (y todas sus octavas), púlsese la tecla correspondiente asegurándose de que no hay ninguna pulsada en ese momento. Una vez pulsada y sin soltarse pueden pulsarse otras para usarlas de referencia. La tecla D5 sube el tono y C#5 baja el tono (estas teclas pueden cambiarse) mientras son mantenidas. Cada vez que se sueltan las teclas de afinación se muestra en la ventana "Post window" el estado de la afinación.
+La tecla C6 resetea la afinación a temperamento igual.
+*/
+
+
+
 s.boot;
 
 
@@ -24,6 +32,7 @@ var last_key = 84;  // C5
 var keyboard_src = 1;  // G.O. de Content
 var tune_up_key = 86;  // D5
 var tune_down_key = 85;  // C#5
+var tune_octaves = false; // Afina todas las octavas de la nota que afinamos.
 
 // Estructura de datos:
 var notes; // Almacena en cada tecla MIDI el sintetizador que suena al pulsarse la tecla. Se elimina al levantar la tecla.
@@ -53,22 +62,36 @@ var show_tune = {arg last_tuned = nil;
 var retune_note = {arg note, dif_cents;
 	var dif_tune = dif_cents / 100;
 	var octavas_bajas, octavas_altas;
-	octavas_bajas = (note,note-12..0);
-	octavas_bajas.removeAt(0);
-	octavas_altas = (note,note+12..127);
-	(octavas_bajas++octavas_altas).do({arg i;
-		tune_notes[i] = tune_notes[i] + dif_tune;
+	if (tune_octaves == true, {
+		octavas_bajas = (note,note-12..0);
+		octavas_bajas.removeAt(0);
+		octavas_altas = (note,note+12..127);
+		(octavas_bajas++octavas_altas).do({arg i;
+			tune_notes[i] = tune_notes[i] + dif_tune;
+			if (notes[i] != nil, {
+				notes[i].set(\freq, (i+tune_notes[i]).midicps);
+			});
+		});
+	}, {
+		tune_notes[note] = tune_notes[note] + dif_tune;
+		if (notes[note] != nil, {
+			notes[note].set(\freq, (note+tune_notes[note]).midicps);
+		});
 	});
 };
 
 // Resetea la afinación de una nota a un valor de desviación concreto (por defecto "0")
 var reset_tune_note = {arg note, cents = 0;
 	var octavas_bajas, octavas_altas;
-	octavas_bajas = (note,note-12..0);
-	octavas_bajas.removeAt(0);
-	octavas_altas = (note,note+12..127);
-	(octavas_bajas++octavas_altas).do({arg i;
-		tune_notes[i] = cents/100;
+	if (tune_octaves == true, {
+		octavas_bajas = (note,note-12..0);
+		octavas_bajas.removeAt(0);
+		octavas_altas = (note,note+12..127);
+		(octavas_bajas++octavas_altas).do({arg i;
+			tune_notes[i] = cents/100;
+		});
+	}, {
+		tune_notes[note] = cents/100;
 	});
 };
 
@@ -76,36 +99,20 @@ var reset_tune_note = {arg note, cents = 0;
 var routine_tune_up = Routine({
 	var step = 0.1; // valor en cents de cada paso de afinación
 	if (note_to_tune != nil, {
-		var octavas_bajas = (note_to_tune, note_to_tune-12..0);
-		var octavas_altas = (note_to_tune, note_to_tune+12..127);
-		octavas_bajas.removeAt(0);
 		loop{
-			(octavas_bajas++octavas_altas).do({arg i;
-				tune_notes[i] = tune_notes[i] + (step/100);
-				if (notes[i] != nil, {
-					notes[i].set(\freq, (i+tune_notes[i]).midicps);
-				});
-			});
+			retune_note.value(note_to_tune, step);
 			wait(0.05);
-		};
+			};
 	});
 });
 
 var routine_tune_down = Routine({
 	var step = 0.1; // valor en cents de cada paso de afinación
 	if (note_to_tune != nil, {
-		var octavas_bajas = (note_to_tune, note_to_tune-12..0);
-		var octavas_altas = (note_to_tune, note_to_tune+12..127);
-		octavas_bajas.removeAt(0);
 		loop{
-			(octavas_bajas++octavas_altas).do({arg i;
-				tune_notes[i] = tune_notes[i] - (step/100);
-				if (notes[i] != nil, {
-					notes[i].set(\freq, (i+tune_notes[i]).midicps);
-				});
-			});
+			retune_note.value(note_to_tune, step*(-1));
 			wait(0.05);
-		};
+			};
 	});
 });
 
