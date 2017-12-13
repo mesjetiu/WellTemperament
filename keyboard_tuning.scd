@@ -19,7 +19,7 @@ s.boot;
 /// Carga todo el programa:
 
 (
-// Pueden cambiarse los siguientes parámetros:
+// Teclas del teclado MIDI asociadas a funciones (pueden asociarse a conveniencia):
 var first_key = 36; // C1
 var last_key = 84;  // C5
 var keyboard_src = 1;  // G.O. de Content
@@ -29,14 +29,14 @@ var partitio_key = 87;  // D#
 var tune_octaves = true; // Afina todas las octavas de la nota que afinamos.
 
 // Estructura de datos:
-var notes; // Almacena en cada tecla MIDI el sintetizador que suena al pulsarse la tecla. Se elimina al levantar la tecla.
-var tune_notes; // Almacena en cada tecla MIDI la desviación en cents respecto a ET12.
-var count_notes = 0; // Lleva el recuento de notas que están activadas. Cuando es "0" la primera en activarse es la que pasa a ser afinada:
+var notes = Array.newClear(128); // Array que almacena en cada tecla MIDI el sintetizador que suena al pulsarse la tecla. Se elimina al levantar la tecla.
+var tuning_notes = Array.fill(128,0); // Array que almacena en cada tecla MIDI la desviación en cents respecto a ET12.
+var count_pushed_notes = 0; // Lleva el recuento de notas que están pulsadas.
 var first_pushed_notes = Array.newClear(2); // Array que almacena las 2 primeras notas pulsadas. [0] se usa para afinar la primera nota pulsada. [0] y [1] se usan para realizar el reparto entre las quintas intermedias.
 
 // Muestra en pantalla la afinación actual
-var print_tune = {arg last_tuned = nil, round = 0.1;
-	var tn = tune_notes;
+var print_tuning = {arg round = 0.1;
+	var tn = tuning_notes;
 	var name = ['C ','C#','D ','D#','E ','F ','F#','G ','G#','A ','A#','B '];
 	"D. ET    | Quintas      | Terceras M.  | Terceras m.  ".postln;
 	"=========|==============|==============|==============".postln;
@@ -84,15 +84,15 @@ var retune_note = {arg note, dif_cents;
 		octavas_bajas.removeAt(0);
 		octavas_altas = (note,note+12..127);
 		(octavas_bajas++octavas_altas).do({arg i;
-			tune_notes[i] = tune_notes[i] + dif_tune;
+			tuning_notes[i] = tuning_notes[i] + dif_tune;
 			if (notes[i] != nil, {
-				notes[i].set(\freq, (i+tune_notes[i]).midicps);
+				notes[i].set(\freq, (i+tuning_notes[i]).midicps);
 			});
 		});
 	}, {
-		tune_notes[note] = tune_notes[note] + dif_tune;
+		tuning_notes[note] = tuning_notes[note] + dif_tune;
 		if (notes[note] != nil, {
-			notes[note].set(\freq, (note+tune_notes[note]).midicps);
+			notes[note].set(\freq, (note+tuning_notes[note]).midicps);
 		});
 	});
 };
@@ -105,10 +105,10 @@ var reset_tune_note = {arg note, cents = 0;
 		octavas_bajas.removeAt(0);
 		octavas_altas = (note,note+12..127);
 		(octavas_bajas++octavas_altas).do({arg i;
-			tune_notes[i] = cents/100;
+			tuning_notes[i] = cents/100;
 		});
 	}, {
-		tune_notes[note] = cents/100;
+		tuning_notes[note] = cents/100;
 	});
 };
 
@@ -132,13 +132,13 @@ var partitio = {
 			fifths_num = fifths_num + 1; // vamos contando las quintas a afinar
 		});
 		// Calculamos la cantidad de cents que hay que mover cada quinta
-		wolf = ((tune_notes[note_2]) - (tune_notes[note_1])) * 100;
+		wolf = ((tuning_notes[note_2]) - (tuning_notes[note_1])) * 100;
 		wolf = wolf / fifths_num; // wolf ahora almacena el error de una sóla quinta
 		// Afinamos las quintas
 		notes_to_tune.do({arg i, n;
 			if (i != nil, {reset_tune_note.value(i, wolf*(n+1))});
 		});
-		print_tune.value;
+		print_tuning.value;
 	});
 };
 
@@ -163,9 +163,6 @@ var routine_tune_down = Routine({
 	});
 });
 
-notes = Array.newClear(128);
-tune_notes = Array.fill(128,0);
-
 
 /// Funciones globales para acceso del usario
 
@@ -175,10 +172,10 @@ tune_notes = Array.fill(128,0);
 	});
 	notes.do({arg tono, index;
 		if (tono != nil, {
-			tono.set(\freq, (index+tune_notes[index]).midicps);
+			tono.set(\freq, (index+tuning_notes[index]).midicps);
 		});
 	});
-	print_tune.value;
+	print_tuning.value;
 };
 
 ~reset_tune_TE12 = {
@@ -220,10 +217,10 @@ SynthDef(\tono, {
 
 MIDIdef.noteOn(\tecla_on, {
 	arg val, chan, src;
-	notes[chan] = Synth(\tono, [\freq, (chan+tune_notes[chan]).midicps]);
-	if (count_notes == 0, {first_pushed_notes[0] = chan});
-	if (count_notes == 1, {first_pushed_notes[1] = chan});
-	count_notes = count_notes + 1;
+	notes[chan] = Synth(\tono, [\freq, (chan+tuning_notes[chan]).midicps]);
+	if (count_pushed_notes == 0, {first_pushed_notes[0] = chan});
+	if (count_pushed_notes == 1, {first_pushed_notes[1] = chan});
+	count_pushed_notes = count_pushed_notes + 1;
 }, (first_key..last_key), keyboard_src);
 
 
@@ -231,7 +228,7 @@ MIDIdef.noteOff(\tecla_off, {
 	arg val, chan, src;
 	notes[chan].set(\gate, 0);
 	notes[chan] = nil;
-	count_notes = count_notes - 1;
+	count_pushed_notes = count_pushed_notes - 1;
 	if (first_pushed_notes[0] == chan, {first_pushed_notes[0] = nil});
 	if (first_pushed_notes[1] == chan, {first_pushed_notes[1] = nil});
 }, (first_key..last_key), keyboard_src);
@@ -249,7 +246,7 @@ MIDIdef.noteOn(\tune_up_on, {
 MIDIdef.noteOff(\tune_up_off, {
 	arg val, chan, src;
 	routine_tune_up.stop;
-	print_tune.value;
+	print_tuning.value;
 }, tune_up_key
 );
 
@@ -263,7 +260,7 @@ MIDIdef.noteOn(\tune_down_on, {
 MIDIdef.noteOff(\tune_down_off, {
 	arg val, chan, src;
 	routine_tune_down.stop;
-	print_tune.value;
+	print_tuning.value;
 }, tune_down_key
 );
 
@@ -277,7 +274,7 @@ MIDIdef.noteOn(\reset_TE12, {
 }, 96 // Responde sólo a la tecla C6
 );
 
-print_tune.value;
+print_tuning.value;
 )
 
 
