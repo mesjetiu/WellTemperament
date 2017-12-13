@@ -43,6 +43,7 @@ var first_pushed_notes = Array.newClear(2); // Array que almacena las 2 primeras
 var qsynth = true; // Si "true", se usará Qsynth como sintetizador de sonido (asegurarse de que Qsynth está abierto).
 var qs_program = 0; // Instrumento elegido en Qsynth.
 var qs_midi_out; // Instancia de MIDIOut si "qsynth" está activado.
+var qs_semitono_bend = 4096; // valor en "bend" de un semitono (100 cents) (para Qsynth)
 
 
 // Muestra en pantalla la afinación actual
@@ -97,13 +98,21 @@ var retune_note = {arg note, dif_cents;
 		(octavas_bajas++octavas_altas).do({arg i;
 			tuning_notes[i] = tuning_notes[i] + dif_tune;
 			if (notes[i] != nil, {
-				notes[i].set(\freq, (i+tuning_notes[i]).midicps);
+				if (qsynth == true, {
+					qs_midi_out.bend(notes[i], 8192 + (tuning_notes[i]*4096));
+				}, {
+					notes[i].set(\freq, (i+tuning_notes[i]).midicps);
+				});
 			});
 		});
 	}, {
 		tuning_notes[note] = tuning_notes[note] + dif_tune;
 		if (notes[note] != nil, {
-			notes[note].set(\freq, (note+tuning_notes[note]).midicps);
+				qs_midi_out.bend(notes[i], 8192 + (tuning_notes[i]*4096));
+			if (qsynth == true, {
+			}, {
+				notes[note].set(\freq, (note+tuning_notes[note]).midicps);
+			});
 		});
 	});
 };
@@ -200,8 +209,9 @@ var routine_tune_down = Routine({
 if (qsynth == true, {
 	qs_midi_out = MIDIOut(0);
 	qs_midi_out.latency = 0;
-	qs_midi_out.program(0, qs_program);
-	qs_midi_out.program(15, qs_program);
+	10.do({arg chan; // polifonía de 10 notas máximo
+		qs_midi_out.program(chan, qs_program);
+	});
 });
 
 
@@ -231,29 +241,32 @@ SynthDef(\tono, {
 
 MIDIdef.noteOn(\tecla_on, {
 	arg val, chan, src;
-	var qs_channel = 0; // Canal de Qsynth donde se enviará la nota (en el caso de estar activada la opción "qsynth")
-	if (count_pushed_notes == 0, {first_pushed_notes[0] = chan; qs_channel = 15});
-	if (count_pushed_notes == 1, {first_pushed_notes[1] = chan});
-	count_pushed_notes = count_pushed_notes + 1;
+	var qs_channel = count_pushed_notes; // Canal de Qsynth donde se enviará la nota (en el caso de estar activada la opción "qsynth")
 	if (qsynth == true, {
+		if (qs_channel > 9, {qs_channel = 9}); // Nos aseguramos de no usar más de 10 canales
+		qs_midi_out.bend(qs_channel, 8192 + (tuning_notes[chan]*qs_semitono_bend));
 		qs_midi_out.noteOn(qs_channel, chan);
+		notes[chan] = qs_channel;
 	}, {
 		notes[chan] = Synth(\tono, [\freq, (chan+tuning_notes[chan]).midicps]);
 	});
+	if (count_pushed_notes == 0, {first_pushed_notes[0] = chan});
+	if (count_pushed_notes == 1, {first_pushed_notes[1] = chan});
+	count_pushed_notes = count_pushed_notes + 1;
 }, (first_key..last_key), keyboard_src);
 
 
 MIDIdef.noteOff(\tecla_off, {
 	arg val, chan, src;
-	var qs_channel = 0;
-	if (first_pushed_notes[0] == chan, {first_pushed_notes[0] = nil; qs_channel = 15});
-	if (first_pushed_notes[1] == chan, {first_pushed_notes[1] = nil});
 	if (qsynth == true, {
-		qs_midi_out.noteOff(qs_channel, chan);
+		qs_midi_out.noteOff(notes[chan], chan);
+		notes[chan] = nil;
 	}, {
 		notes[chan].set(\gate, 0);
 		notes[chan] = nil;
 	});
+	if (first_pushed_notes[0] == chan, {first_pushed_notes[0] = nil});
+	if (first_pushed_notes[1] == chan, {first_pushed_notes[1] = nil});
 	count_pushed_notes = count_pushed_notes - 1;
 }, (first_key..last_key), keyboard_src);
 
