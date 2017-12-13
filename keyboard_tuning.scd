@@ -12,8 +12,13 @@ La tecla C6 resetea la afinación a temperamento igual.
 */
 
 
-
+(
 s.boot;
+
+// Inicializamos MIDI
+MIDIClient.init;
+MIDIIn.connectAll;
+)
 
 
 /// Carga todo el programa:
@@ -33,6 +38,12 @@ var notes = Array.newClear(128); // Array que almacena en cada tecla MIDI el sin
 var tuning_notes = Array.fill(128,0); // Array que almacena en cada tecla MIDI la desviación en cents respecto a ET12.
 var count_pushed_notes = 0; // Lleva el recuento de notas que están pulsadas.
 var first_pushed_notes = Array.newClear(2); // Array que almacena las 2 primeras notas pulsadas. [0] se usa para afinar la primera nota pulsada. [0] y [1] se usan para realizar el reparto entre las quintas intermedias.
+
+// Sintetizador Qsynth:
+var qsynth = true; // Si "true", se usará Qsynth como sintetizador de sonido (asegurarse de que Qsynth está abierto).
+var qs_program = 0; // Instrumento elegido en Qsynth.
+var qs_midi_out; // Instancia de MIDIOut si "qsynth" está activado.
+
 
 // Muestra en pantalla la afinación actual
 var print_tuning = {arg round = 0.1;
@@ -186,10 +197,13 @@ var routine_tune_down = Routine({
 /// FIN DE DECLARACIONES E INICIALIZACIONES DE VARIABLES////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+if (qsynth == true, {
+	qs_midi_out = MIDIOut(0);
+	qs_midi_out.latency = 0;
+	qs_midi_out.program(0, qs_program);
+	qs_midi_out.program(15, qs_program);
+});
 
-// Inicializamos MIDI
-MIDIClient.init;
-MIDIIn.connectAll;
 
 // Definimos el sintetizador de notas. Consta de 10 armónicos, cada uno con un volumen independiente y modificable en tiempo real.
 
@@ -217,20 +231,30 @@ SynthDef(\tono, {
 
 MIDIdef.noteOn(\tecla_on, {
 	arg val, chan, src;
-	notes[chan] = Synth(\tono, [\freq, (chan+tuning_notes[chan]).midicps]);
-	if (count_pushed_notes == 0, {first_pushed_notes[0] = chan});
+	var qs_channel = 0; // Canal de Qsynth donde se enviará la nota (en el caso de estar activada la opción "qsynth")
+	if (count_pushed_notes == 0, {first_pushed_notes[0] = chan; qs_channel = 15});
 	if (count_pushed_notes == 1, {first_pushed_notes[1] = chan});
 	count_pushed_notes = count_pushed_notes + 1;
+	if (qsynth == true, {
+		qs_midi_out.noteOn(qs_channel, chan);
+	}, {
+		notes[chan] = Synth(\tono, [\freq, (chan+tuning_notes[chan]).midicps]);
+	});
 }, (first_key..last_key), keyboard_src);
 
 
 MIDIdef.noteOff(\tecla_off, {
 	arg val, chan, src;
-	notes[chan].set(\gate, 0);
-	notes[chan] = nil;
-	count_pushed_notes = count_pushed_notes - 1;
-	if (first_pushed_notes[0] == chan, {first_pushed_notes[0] = nil});
+	var qs_channel = 0;
+	if (first_pushed_notes[0] == chan, {first_pushed_notes[0] = nil; qs_channel = 15});
 	if (first_pushed_notes[1] == chan, {first_pushed_notes[1] = nil});
+	if (qsynth == true, {
+		qs_midi_out.noteOff(qs_channel, chan);
+	}, {
+		notes[chan].set(\gate, 0);
+		notes[chan] = nil;
+	});
+	count_pushed_notes = count_pushed_notes - 1;
 }, (first_key..last_key), keyboard_src);
 
 // Teclas para afinar
