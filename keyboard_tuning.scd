@@ -35,9 +35,13 @@ var tune_octaves = true; // Afina todas las octavas de la nota que afinamos.
 
 // Estructura de datos:
 var notes = Array.newClear(128); // Array que almacena en cada tecla MIDI el sintetizador que suena al pulsarse la tecla. Se elimina al levantar la tecla.
+var qs_notes = Array.newClear(128); // Array como el anterior pero para uso de Qsynth
 var tuning_notes = Array.fill(128,0); // Array que almacena en cada tecla MIDI la desviación en cents respecto a ET12.
 var count_pushed_notes = 0; // Lleva el recuento de notas que están pulsadas.
 var first_pushed_notes = Array.newClear(2); // Array que almacena las 2 primeras notas pulsadas. [0] se usa para afinar la primera nota pulsada. [0] y [1] se usan para realizar el reparto entre las quintas intermedias.
+
+// Sintetizador de Supercollider:
+var synth_internal = \tono; // Si contiene el símbolo de un sintetizador de Supercollider, se usará para salida de sonido. Si es "nil" no sonará ningún sintetizador de Supercollider.
 
 // Sintetizador Qsynth:
 var qsynth = true; // Si "true", se usará Qsynth como sintetizador de sonido (asegurarse de que Qsynth está abierto).
@@ -103,28 +107,16 @@ var print_tuning = {arg round = 0.1;
 var retune_note = {arg note, dif_cents;
 	var dif_tune = dif_cents / 100;
 	var octavas_bajas, octavas_altas;
-	if (tune_octaves == true, {
-		octavas_bajas = (note,note-12..0);
-		octavas_bajas.removeAt(0);
-		octavas_altas = (note,note+12..127);
-		(octavas_bajas++octavas_altas).do({arg i;
-			tuning_notes[i] = tuning_notes[i] + dif_tune;
-			if (notes[i] != nil, {
-				if (qsynth == true, {
-					qs_midi_out.bend(notes[i], 8192 + (tuning_notes[i]*4096));
-				}, {
-					notes[i].set(\freq, (i+tuning_notes[i]).midicps);
-				});
-			});
+	octavas_bajas = (note,note-12..0);
+	octavas_bajas.removeAt(0);
+	octavas_altas = (note,note+12..127);
+	(octavas_bajas++octavas_altas).do({arg i;
+		tuning_notes[i] = tuning_notes[i] + dif_tune;
+		if ((notes[i] != nil) && (synth_internal != nil), {
+			notes[i].set(\freq, (i+tuning_notes[i]).midicps);
 		});
-	}, {
-		tuning_notes[note] = tuning_notes[note] + dif_tune;
-		if (notes[note] != nil, {
-				qs_midi_out.bend(notes[i], 8192 + (tuning_notes[i]*4096));
-			if (qsynth == true, {
-			}, {
-				notes[note].set(\freq, (note+tuning_notes[note]).midicps);
-			});
+		if ((qs_notes[i] != nil) && (qsynth == true), {
+			qs_midi_out.bend(qs_notes[i], 8192 + (tuning_notes[i]*4096));
 		});
 	});
 };
@@ -195,7 +187,7 @@ var routine_tune_down = Routine({
 	});
 });
 
-// Activa un programa (sonido) en el sintetizador qsynth
+// Activa un programa (instrumento) en el sintetizador qsynth
 var qs_change_program = {arg program;
 	10.do({arg chan; // polifonía de 10 notas máximo
 		qs_midi_out.program(chan, program);
@@ -265,32 +257,35 @@ SynthDef(\tono, {
 
 MIDIdef.noteOn(\tecla_on, {
 	arg val, chan, src;
-	if (notes[chan] == nil, {
+	if ((qs_notes[chan] == nil) && (qsynth == true), {
 		var qs_channel = count_pushed_notes; // Canal de Qsynth donde se enviará la nota (en el caso de estar activada la opción "qsynth")
-		if (qsynth == true, {
-			if (qs_channel > 9, {qs_channel = 9}); // Nos aseguramos de no usar más de 10 canales
-			qs_midi_out.bend(qs_channel, 8192 + (tuning_notes[chan]*qs_semitono_bend));
-			qs_midi_out.noteOn(qs_channel, chan);
-			notes[chan] = qs_channel;
-		}, {
-			notes[chan] = Synth(\tono, [\freq, (chan+tuning_notes[chan]).midicps]);
-		});
-		if (count_pushed_notes == 0, {first_pushed_notes[0] = chan});
-		if (count_pushed_notes == 1, {first_pushed_notes[1] = chan});
-		count_pushed_notes = count_pushed_notes + 1;
+		if (qs_channel > 9, {qs_channel = 9}); // Nos aseguramos de no usar más de 10 canales
+		qs_midi_out.bend(qs_channel, 8192 + (tuning_notes[chan]*qs_semitono_bend));
+		qs_midi_out.noteOn(qs_channel, chan);
+		qs_notes[chan] = qs_channel;
 	});
+
+	if ((notes[chan] == nil) && (synth_internal != nil), {
+		notes[chan] = Synth(\tono, [\freq, (chan+tuning_notes[chan]).midicps]);
+	});
+
+	if (count_pushed_notes == 0, {first_pushed_notes[0] = chan});
+	if (count_pushed_notes == 1, {first_pushed_notes[1] = chan});
+	count_pushed_notes = count_pushed_notes + 1;
 }, (first_key..last_key), keyboard_src);
 
 
 MIDIdef.noteOff(\tecla_off, {
 	arg val, chan, src;
 	if (qsynth == true, {
-		qs_midi_out.noteOff(notes[chan], chan);
-		notes[chan] = nil;
-	}, {
+		qs_midi_out.noteOff(qs_notes[chan], chan);
+		qs_notes[chan] = nil;
+	});
+	if ((synth_internal != nil), {
 		notes[chan].set(\gate, 0);
 		notes[chan] = nil;
 	});
+
 	if (first_pushed_notes[0] == chan, {first_pushed_notes[0] = nil});
 	if (first_pushed_notes[1] == chan, {first_pushed_notes[1] = nil});
 	count_pushed_notes = count_pushed_notes - 1;
