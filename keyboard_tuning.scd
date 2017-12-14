@@ -48,6 +48,15 @@ var qs_semitono_bend = 4096; // valor en "bend" de un semitono (100 cents) (para
 // Opciones de GUI:
 var freq_scope = false; // Analizador de espectro.
 
+// Devuelve un array con las medidas de un intervalo sobre cada una de las 12 notas.
+var interval_cents = {arg interval; // El intervalo se mide en semitonos. P. ej. quinta = 7.
+	var array_cents = Array.newClear(12);
+	12.do({arg i;
+		array_cents[i] = ((tuning_notes[i+interval] - tuning_notes[i]) * 100) + (100 * interval);
+	});
+	array_cents;
+};
+
 
 // Muestra en pantalla la afinación actual
 var print_tuning = {arg round = 0.1;
@@ -87,7 +96,7 @@ var print_tuning = {arg round = 0.1;
 
 	"=========|==============|==============|==============".postln;
 
-	"OK"
+	"OK";
 };
 
 // Aplica una diferencia de afinación en todas las octavas de una nota dada.
