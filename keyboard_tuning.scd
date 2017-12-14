@@ -265,18 +265,20 @@ SynthDef(\tono, {
 
 MIDIdef.noteOn(\tecla_on, {
 	arg val, chan, src;
-	var qs_channel = count_pushed_notes; // Canal de Qsynth donde se enviará la nota (en el caso de estar activada la opción "qsynth")
-	if (qsynth == true, {
-		if (qs_channel > 9, {qs_channel = 9}); // Nos aseguramos de no usar más de 10 canales
-		qs_midi_out.bend(qs_channel, 8192 + (tuning_notes[chan]*qs_semitono_bend));
-		qs_midi_out.noteOn(qs_channel, chan);
-		notes[chan] = qs_channel;
-	}, {
-		notes[chan] = Synth(\tono, [\freq, (chan+tuning_notes[chan]).midicps]);
+	if (notes[chan] == nil, {
+		var qs_channel = count_pushed_notes; // Canal de Qsynth donde se enviará la nota (en el caso de estar activada la opción "qsynth")
+		if (qsynth == true, {
+			if (qs_channel > 9, {qs_channel = 9}); // Nos aseguramos de no usar más de 10 canales
+			qs_midi_out.bend(qs_channel, 8192 + (tuning_notes[chan]*qs_semitono_bend));
+			qs_midi_out.noteOn(qs_channel, chan);
+			notes[chan] = qs_channel;
+		}, {
+			notes[chan] = Synth(\tono, [\freq, (chan+tuning_notes[chan]).midicps]);
+		});
+		if (count_pushed_notes == 0, {first_pushed_notes[0] = chan});
+		if (count_pushed_notes == 1, {first_pushed_notes[1] = chan});
+		count_pushed_notes = count_pushed_notes + 1;
 	});
-	if (count_pushed_notes == 0, {first_pushed_notes[0] = chan});
-	if (count_pushed_notes == 1, {first_pushed_notes[1] = chan});
-	count_pushed_notes = count_pushed_notes + 1;
 }, (first_key..last_key), keyboard_src);
 
 
@@ -299,8 +301,11 @@ MIDIdef.noteOff(\tecla_off, {
 
 MIDIdef.noteOn(\tune_up_on, {
 	arg val, chan, src;
-	routine_tune_up.reset;
-	routine_tune_up.play;
+	if (notes[chan] == nil, {
+		routine_tune_up.reset;
+		routine_tune_up.play;
+		notes[chan] = chan;
+	});
 }, tune_up_key
 );
 
@@ -308,13 +313,17 @@ MIDIdef.noteOff(\tune_up_off, {
 	arg val, chan, src;
 	routine_tune_up.stop;
 	print_tuning.value;
+	notes[chan] = nil;
 }, tune_up_key
 );
 
 MIDIdef.noteOn(\tune_down_on, {
 	arg val, chan, src;
-	routine_tune_down.reset;
-	routine_tune_down.play;
+	if (notes[chan] == nil, {
+		routine_tune_down.reset;
+		routine_tune_down.play;
+		notes[chan] = chan;
+	});
 }, tune_down_key
 );
 
@@ -322,16 +331,37 @@ MIDIdef.noteOff(\tune_down_off, {
 	arg val, chan, src;
 	routine_tune_down.stop;
 	print_tuning.value;
+	notes[chan] = nil;
 }, tune_down_key
 );
 
-MIDIdef.noteOn(\partitio, {
-	partitio.value;
+MIDIdef.noteOn(\partitio_on, {
+	arg val, chan, src;
+	if (notes[chan] == nil, {
+		partitio.value;
+		notes[chan] = chan;
+	});
 }, partitio_key
 );
 
-MIDIdef.noteOn(\reset_TE12, {
-	~reset_tune_TE12.value;
+MIDIdef.noteOff(\partitio_off, {
+	arg val, chan, src;
+	notes[chan] = nil;
+}, partitio_key
+);
+
+MIDIdef.noteOn(\reset_TE12_on, {
+	arg val, chan, src;
+	if (notes[chan] == nil, {
+		~reset_tune_TE12.value;
+		notes[chan] = chan;
+	});
+}, 96 // Responde sólo a la tecla C6
+);
+
+MIDIdef.noteOff(\reset_TE12_off, {
+	arg val, chan, src;
+	notes[chan] = nil;
 }, 96 // Responde sólo a la tecla C6
 );
 
