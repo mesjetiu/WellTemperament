@@ -277,11 +277,11 @@ MIDIdef.noteOn(\tecla_on, {
 
 MIDIdef.noteOff(\tecla_off, {
 	arg val, chan, src;
-	if (qsynth == true, {
+	if ((qsynth == true) && (qs_notes[chan] != nil), {
 		qs_midi_out.noteOff(qs_notes[chan], chan);
 		qs_notes[chan] = nil;
 	});
-	if ((synth_internal != nil), {
+	if ((synth_internal != nil) && (notes[chan] != nil), {
 		notes[chan].set(\gate, 0);
 		notes[chan] = nil;
 	});
@@ -306,9 +306,11 @@ MIDIdef.noteOn(\tune_up_on, {
 
 MIDIdef.noteOff(\tune_up_off, {
 	arg val, chan, src;
-	routine_tune_up.stop;
-	print_tuning.value;
-	notes[chan] = nil;
+	if (notes[chan] != nil, {
+		routine_tune_up.stop;
+		print_tuning.value;
+		notes[chan] = nil;
+	});
 }, tune_up_key
 );
 
@@ -324,9 +326,11 @@ MIDIdef.noteOn(\tune_down_on, {
 
 MIDIdef.noteOff(\tune_down_off, {
 	arg val, chan, src;
-	routine_tune_down.stop;
-	print_tuning.value;
-	notes[chan] = nil;
+	if (notes[chan] != nil, {
+		routine_tune_down.stop;
+		print_tuning.value;
+		notes[chan] = nil;
+	});
 }, tune_down_key
 );
 
@@ -341,7 +345,9 @@ MIDIdef.noteOn(\partitio_on, {
 
 MIDIdef.noteOff(\partitio_off, {
 	arg val, chan, src;
-	notes[chan] = nil;
+	if (notes[chan] != nil, {
+		notes[chan] = nil;
+	});
 }, partitio_key
 );
 
@@ -356,7 +362,9 @@ MIDIdef.noteOn(\reset_TE12_on, {
 
 MIDIdef.noteOff(\reset_TE12_off, {
 	arg val, chan, src;
-	notes[chan] = nil;
+	if (notes[chan] != nil, {
+		notes[chan] = nil;
+	});
 }, 96 // Responde sólo a la tecla C6
 );
 
