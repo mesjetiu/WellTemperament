@@ -27,7 +27,7 @@ MIDIIn.connectAll;
 // Teclas del teclado MIDI asociadas a funciones (pueden asociarse a conveniencia):
 var first_key = 36; // C1
 var last_key = 84;  // C5
-var keyboard_src = 1;  // G.O. de Content
+var keyboard_src = nil;  // Si "nil" admite todos los canales (En el caso de tener varios teclados, especificar un canal si se quiere)
 var tune_up_key = 86;  // D5
 var tune_down_key = 85;  // C#5
 var partitio_key = 87;  // D#
@@ -183,6 +183,13 @@ var routine_tune_down = Routine({
 	});
 });
 
+// Activa un programa (sonido) en el sintetizador qsynth
+var qs_change_program = {arg program;
+	10.do({arg chan; // polifonía de 10 notas máximo
+		qs_midi_out.program(chan, program);
+	});
+};
+
 
 /// Funciones globales para acceso del usario
 
@@ -209,9 +216,7 @@ var routine_tune_down = Routine({
 if (qsynth == true, {
 	qs_midi_out = MIDIOut(0);
 	qs_midi_out.latency = 0;
-	10.do({arg chan; // polifonía de 10 notas máximo
-		qs_midi_out.program(chan, qs_program);
-	});
+	qs_change_program.value(qs_program); // por defecto pone el programa 1 en qsynth.
 });
 
 
@@ -309,6 +314,12 @@ MIDIdef.noteOn(\partitio, {
 MIDIdef.noteOn(\reset_TE12, {
 	~reset_tune_TE12.value;
 }, 96 // Responde sólo a la tecla C6
+);
+
+MIDIdef.program(\program_change, {
+	arg val, chan, src;
+	qs_change_program.value(val);
+}
 );
 
 print_tuning.value;
