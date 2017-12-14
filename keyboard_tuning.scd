@@ -45,6 +45,9 @@ var qs_program = 0; // Instrumento elegido en Qsynth.
 var qs_midi_out; // Instancia de MIDIOut si "qsynth" está activado.
 var qs_semitono_bend = 4096; // valor en "bend" de un semitono (100 cents) (para Qsynth)
 
+// Opciones de GUI:
+var freq_scope = false; // Analizador de espectro.
+
 
 // Muestra en pantalla la afinación actual
 var print_tuning = {arg round = 0.1;
@@ -209,15 +212,22 @@ var qs_change_program = {arg program;
 	~enter_tune.value([0,0,0,0,0,0,0,0,0,0,0,0]);
 };
 
-
-/// FIN DE DECLARACIONES E INICIALIZACIONES DE VARIABLES////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 if (qsynth == true, {
 	qs_midi_out = MIDIOut(0);
 	qs_midi_out.latency = 0;
 	qs_change_program.value(qs_program); // por defecto pone el programa 1 en qsynth.
 });
+
+/// FIN DE DECLARACIONES E INICIALIZACIONES DE VARIABLES////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+/// ELEMENTOS GUI///////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+if (freq_scope == true, {FreqScope.new});
+
 
 
 // Definimos el sintetizador de notas. Consta de 10 armónicos, cada uno con un volumen independiente y modificable en tiempo real.
