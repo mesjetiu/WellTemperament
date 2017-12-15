@@ -51,14 +51,29 @@ var qs_semitono_bend = 4096; // valor en "bend" de un semitono (100 cents) (para
 
 // Opciones de GUI:
 var freq_scope = false; // Analizador de espectro.
+var gnuplot = true; // Abre gráficas gnuplot de quintas y terceras. Requiere quark "GNUplot" y gnuplot en el sistema.
+var gp_fifths = nil;
 
-// Devuelve un array con las medidas de un intervalo sobre cada una de las 12 notas.
-var interval_cents = {arg interval; // El intervalo se mide en semitonos. P. ej. quinta = 7.
+// Devuelve un array con las medidas de un intervalo sobre cada una de las 12 notas (Para ser graficado, p.ej.)
+var interval_12 = {arg interval; // El intervalo se mide en semitonos. P. ej. quinta = 7.
 	var array_cents = Array.newClear(12);
 	12.do({arg i;
 		array_cents[i] = ((tuning_notes[i+interval] - tuning_notes[i]) * 100) + (100 * interval);
 	});
 	array_cents;
+};
+
+
+// Abre un gráfico de quintas en gnuplot.
+var gnuplot_fifths = {
+	var string;
+	if (gp_fifths == nil, {gp_fifths = GNUPlot.new});
+	string = "plot '-' title \"Quintas\" with boxes\n";
+	interval_12.value(7).do({arg i;
+		string = string ++ i ++ "\n";
+	});
+	string = string ++ "EOF\n";
+	gp_fifths.sendCmd(string);
 };
 
 
@@ -99,6 +114,8 @@ var print_tuning = {arg round = 0.1;
 	});
 
 	"=========|==============|==============|==============".postln;
+
+	if (gnuplot == true, {gnuplot_fifths.value});
 
 	"OK";
 };
