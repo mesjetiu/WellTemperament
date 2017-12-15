@@ -169,21 +169,17 @@ var partitio = {
 // Rutina para afinar al presionar las teclas asignadas
 var routine_tune_up = Routine({
 	var step = 0.1; // valor en cents de cada paso de afinación
-	if (first_pushed_notes[0] != nil, {
-		loop{
-			retune_note.value(first_pushed_notes[0], step);
-			wait(0.05);
-			};
+	while({first_pushed_notes[0] != nil}, {
+		retune_note.value(first_pushed_notes[0], step);
+		wait(0.05);
 	});
 });
 
 var routine_tune_down = Routine({
 	var step = 0.1; // valor en cents de cada paso de afinación
-	if (first_pushed_notes[0] != nil, {
-		loop{
-			retune_note.value(first_pushed_notes[0], step*(-1));
-			wait(0.05);
-			};
+	while ({first_pushed_notes[0] != nil}, {
+		retune_note.value(first_pushed_notes[0], step*(-1));
+		wait(0.05);
 	});
 });
 
