@@ -248,7 +248,7 @@ if (freq_scope == true, {FreqScope.new});
 // Definimos el sintetizador de notas. Consta de 10 armónicos, cada uno con un volumen independiente y modificable en tiempo real.
 
 SynthDef(\tono, {
-	arg freq = 440, amp = 0.5, gate = 1, har1=1, har2=1, har3=1, har4=1, har5=1, har6=1, har7=1, har8=1, har9=1, har10=1;
+	arg freq = 440, amp = 0.5, gate = 1, har1=1, har2=0.5, har3=0.4, har4=0.2, har5=0.1, har6=0.1, har7=0.07, har8=0.06, har9=0.05, har10=0.04;
 	var sig, env, harm;
 	env = Env.asr(0.01, 1, 0.2).kr(2, gate);
 	sig = SinOsc.ar(freq,0,har1);
@@ -261,7 +261,7 @@ SynthDef(\tono, {
 	sig = sig + SinOsc.ar(freq*8,0,har8);
 	sig = sig + SinOsc.ar(freq*9,0,har9);
 	sig = sig + SinOsc.ar(freq*10,0,har10);
-	sig = sig * 0.005 * amp * env;
+	sig = sig * 0.08 * amp * env;
 	Out.ar(0, sig!2);
 }).add;
 
