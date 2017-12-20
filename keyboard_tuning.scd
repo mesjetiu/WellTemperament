@@ -66,14 +66,34 @@ var interval_12 = {arg interval, orden = 7; // El intervalo se mide en semitonos
 
 
 // Abre un gráfico de quintas en gnuplot.
+// TODO: en p. 57 de "gnuplot in action (2nd edition) se explica como hacer un multiplot con un ejemplo. Útil para graficar notas de la escala, quintas, terceras mayores y terceras menores.
 var gnuplot_fifths = {arg orden = 7;
-	var string;
+	var string, file, color, red=255, green=0, blue=0;
 	if (gp_fifths == nil, {gp_fifths = GNUPlot.new});
-	string = "plot '-' title \"Quintas\" with boxes\n";
+
+	file = File("gnuplot_temp","w");
+
 	interval_12.value(7, orden).do({arg i;
-		string = string ++ i ++ "\n";
+		color = red<<16;
+		color = color + (green<<8);
+		color = color + blue;
+		color = color.asHexString;
+		file.write(i.asString ++ " " ++ color ++ "\n");
 	});
-	string = string ++ "EOF\n";
+	file.close;
+	// Configuración general de las gráficas:
+	string = "set xlabel \"quintas\"\n";
+	string = string ++ "set ylabel \"tamaño en cents\"\n";
+	string = string ++ "set boxwidth 0.75 relative\n";
+	string = string ++ "set style fill solid 0.5\n";
+
+	// Órdenes de gráficas separadas por comas:
+	string = string ++ "plot ";
+	string = string ++ "[] [600:800] "; // usando un rango específico para la coordeanda "y".
+	string = string ++ "\"" ++ File.getcwd ++ "/gnuplot_temp" ++ "\" " ++ "using 0:1:2 lc rgb variable " ++ "title " ++ "\"quintas temperamento igual\" " ++ "with boxes, ";
+	string = string ++ "700 title \"quinta ET12\"\n";
+	//string = string ++ " '-' using 0:1:(0.75) title \"quintas temperamento actual\" with boxes\n";
+
 	gp_fifths.sendCmd(string);
 };
 
