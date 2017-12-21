@@ -67,34 +67,40 @@ var interval_12 = {arg interval, orden = 7; // El intervalo se mide en semitonos
 
 // Abre un gráfico de quintas en gnuplot.
 // TODO: en p. 57 de "gnuplot in action (2nd edition) se explica como hacer un multiplot con un ejemplo. Útil para graficar notas de la escala, quintas, terceras mayores y terceras menores.
-var gnuplot_fifths = {arg orden = 7;
+var gnuplot_fifths = {
 	var string, file, color, red=255, green=0, blue=0;
-	if (gp_fifths == nil, {gp_fifths = GNUPlot.new});
 
+	// Escribimos el archivo de datos temporal
 	file = File("gnuplot_temp","w");
-
-	interval_12.value(7, orden).do({arg i;
+	interval_12.value(7, 7).do({arg i, index;
 		color = red<<16;
 		color = color + (green<<8);
 		color = color + blue;
 		color = color.asHexString;
-		file.write(i.asString ++ " " ++ color ++ "\n");
+		file.write((index+1).asString ++ " " ++ i.asString ++ " " ++ color ++ "\n");
 	});
 	file.close;
-	// Configuración general de las gráficas:
-	string = "set xlabel \"quintas\"\n";
-	string = string ++ "set ylabel \"tamaño en cents\"\n";
-	string = string ++ "set boxwidth 0.75 relative\n";
-	string = string ++ "set style fill solid 0.5\n";
 
-	// Órdenes de gráficas separadas por comas:
-	string = string ++ "plot ";
-	string = string ++ "[] [600:800] "; // usando un rango específico para la coordeanda "y".
-	string = string ++ "\"" ++ File.getcwd ++ "/gnuplot_temp" ++ "\" " ++ "using 0:1:2 lc rgb variable " ++ "title " ++ "\"quintas temperamento igual\" " ++ "with boxes, ";
-	string = string ++ "700 title \"quinta ET12\"\n";
-	//string = string ++ " '-' using 0:1:(0.75) title \"quintas temperamento actual\" with boxes\n";
+	// Si es la primera vez, enviamos toda la configuración a gnuplot. Si no, simplemente reploteamos.
+	if (gp_fifths == nil, {
+		gp_fifths = GNUPlot.new;
+		// Configuración general de las gráficas:
+		string = "set xlabel \"QUINTAS\"\n";
+		string = string ++ "set ylabel \"TAMAÑO EN CENTS\"\n";
+		string = string ++ "set boxwidth 0.75 relative\n";
+		string = string ++ "set style fill solid 0.5\n";
+		string = string ++ "set xtics (\"C-G\" 1, \"G-D\" 2, \"D-A\" 3, \"A-E\" 4, \"E-F#\" 5, \"B-F#\" 6, \"F#-C#\" 7, \"C#-G#\" 8, \"G#-D#\" 9, \"D#-A#\" 10, \"Bb-F\" 11, \"F-D\" 12)\n";
 
-	gp_fifths.sendCmd(string);
+		// Órdenes de gráficas separadas por comas:
+		string = string ++ "plot ";
+		string = string ++ "[] [660:730] "; // usando un rango específico para la coordeanda "y".
+		string = string ++ "\"" ++ File.getcwd ++ "/gnuplot_temp" ++ "\" " ++ "using 1:2:3 lc rgb variable " ++ "title " ++ "\"quintas temperamento actual\" " ++ "with boxes, ";
+		string = string ++ "700 title \"quinta ET12\", ";
+		string = string ++ ((3/2).ratiomidi*100).asString ++ " title \"quinta justa\"\n";
+		gp_fifths.sendCmd(string);
+	},{
+		gp_fifths.sendCmd("replot");
+	});
 };
 
 
