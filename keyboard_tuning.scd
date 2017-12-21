@@ -79,15 +79,17 @@ var interval_12 = {arg interval, orden = 7; // El intervalo se mide en semitonos
 var gnuplot_fifths = {
 	var string, file;
 	var color;
+	var desviacion;
 	var blend;
 	var consonance = ((3/2).ratiomidi*100);
-	var max_desviacion = 20; // máxima desviación de la consonancia en cents
+	var max_desviacion = 11.8; // máxima desviación de la consonancia en cents -> 1/2 de coma sintónica
 
 	// Escribimos el archivo de datos temporal
 	file = File("gnuplot_temp","w");
 	interval_12.value(7, 7).do({arg i, index;
-		blend = (consonance - i).abs.linlin(0, max_desviacion, 0, 1);
-		color = Color.new(0,255).blend(Color.new(255),blend);
+		desviacion = (consonance - i).abs;
+		blend = desviacion.linlin(0, max_desviacion,0,1);
+		color = Color.new(0,140).blend(Color.new(255),blend);
 		file.write((index+1).asString ++ " " ++ i.asString ++ " " ++ "0x" ++ ((color.red.asInt<<16)+(color.green.asInt<<8)+color.blue.asInt).asHexString ++ "\n");
 	});
 	file.close;
