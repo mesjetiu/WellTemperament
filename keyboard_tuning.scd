@@ -11,6 +11,15 @@ Partimos del temperamento igual. Para reafinar una nota (y todas sus octavas), p
 La tecla C6 resetea la afinación a temperamento igual.
 */
 
+/*
+DEPENDENCIAS:
+* Quark "GNUPlot"
+* gnuplot instalado en el sistema
+
+OPCIONAL:
+* fluidsynth (qsynth) como sintetizador externo
+*/
+
 
 (
 s.boot;
@@ -134,7 +143,7 @@ var print_tuning = {arg round = 0.1;
 				}); st;
 			}.value ++ "| " ++
 
-			note ++ "-" ++ name[(i+4).mod(12)] ++ "= " ++
+			note ++ "-" ++ name[(i+3).mod(12)] ++ "= " ++
 			(((tn[i+3]-tn[i]+3)-((6/5).ratiomidi)*100)).round(round);
 
 		);
