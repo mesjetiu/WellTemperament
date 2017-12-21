@@ -104,8 +104,8 @@ var gnuplot_fifths = {
 		string = string ++ "plot ";
 		string = string ++ "[] [660:730] "; // usando un rango específico para la coordeanda "y".
 		string = string ++ "\"" ++ File.getcwd ++ "/gnuplot_temp" ++ "\" " ++ "using 1:2:3 lc rgb variable " ++ "title " ++ "\"quintas temperamento actual\" " ++ "with boxes, ";
-		string = string ++ "700 title \"quinta ET12\", ";
-		string = string ++ ((3/2).ratiomidi*100).asString ++ " title \"quinta justa\"\n";
+		string = string ++ ((3/2).ratiomidi*100).asString ++ " title \"quinta justa\"\ with line linewidth 2, ";
+		string = string ++ "700 title \"quinta ET12\" with line linewidth 2 \n";
 		gp_fifths.sendCmd(string);
 	},{
 		gp_fifths.sendCmd("replot");
