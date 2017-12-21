@@ -77,16 +77,17 @@ var interval_12 = {arg interval, orden = 7; // El intervalo se mide en semitonos
 // Abre un gráfico de quintas en gnuplot.
 // TODO: en p. 57 de "gnuplot in action (2nd edition) se explica como hacer un multiplot con un ejemplo. Útil para graficar notas de la escala, quintas, terceras mayores y terceras menores.
 var gnuplot_fifths = {
-	var string, file, color, red=255, green=0, blue=0;
+	var string, file;
+	var color = Color.new(0,0,0,0);
+	var consonance = ((3/2).ratiomidi*100);
+	var max_desviacion = 20; // máxima desviación de la consonancia en cents
 
 	// Escribimos el archivo de datos temporal
 	file = File("gnuplot_temp","w");
 	interval_12.value(7, 7).do({arg i, index;
-		color = red<<16;
-		color = color + (green<<8);
-		color = color + blue;
-		color = color.asHexString;
-		file.write((index+1).asString ++ " " ++ i.asString ++ " " ++ color ++ "\n");
+		color.red = (consonance - i).abs.linlin(0, max_desviacion, 0, 255).round(1).asInteger;
+		color.green = 255 - color.red;
+		file.write((index+1).asString ++ " " ++ i.asString ++ " " ++ "0x" ++ ((color.red.asInt<<16)+(color.green.asInt<<8)+color.blue.asInt).asHexString ++ "\n");
 	});
 	file.close;
 
