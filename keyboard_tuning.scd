@@ -35,21 +35,21 @@ MIDIIn.connectAll;
 (
 
 // Variables con valores usados frecuentemente:
-
 var notes_name = ['C ','C#','D ','D#','E ','F ','F#','G ','G#','A ','A#','B '];
 var quinta_justa = (3/2).ratiomidi*100;
 var coma_pit = (quinta_justa * 12) - (700 * 12);
 
+
 // Teclas del teclado MIDI asociadas a funciones (pueden asociarse a conveniencia):
 var first_key = 36; // C1
 var last_key = 84;  // C5
-var keyboard_src = nil;  // Si "nil" admite todos los canales (En el caso de tener varios teclados, especificar un canal si se quiere)
+var keyboard_src = nil;  // Si "nil", admite todos los canales (En el caso de tener varios teclados, especificar un canal si se quiere)
 var tune_up_key = 86;  // D5
 var tune_down_key = 85;  // C#5
 var partitio_key = 87;  // D#
 var tune_octaves = true; // Afina todas las octavas de la nota que afinamos.
 
-// Estructura de datos:
+// Estructura de datos para MIDI:
 var notes = Array.newClear(128); // Array que almacena en cada tecla MIDI el sintetizador que suena al pulsarse la tecla. Se elimina al levantar la tecla.
 var qs_notes = Array.newClear(128); // Array como el anterior pero para uso de Qsynth
 var tuning_notes = Array.fill(128,0); // Array que almacena en cada tecla MIDI la desviación en cents respecto a ET12.
@@ -70,6 +70,9 @@ var post_window = false;
 var freq_scope = false; // Analizador de espectro.
 var gnuplot = true; // Abre gráficas gnuplot de quintas y terceras. Requiere quark "GNUplot" y gnuplot en el sistema.
 var gp_fifths = nil;
+
+
+/// FUNCIONES
 
 // Devuelve un array con las medidas de un intervalo sobre cada una de las 12 notas (Para ser graficado, p.ej.)
 var interval_12 = {arg interval, orden = 7; // El intervalo se mide en semitonos. P. ej. quinta = 7. "orden" se refiere a la ordenación de las quintas en el array: el entero indicará cuantas quintas saltarse (p. ej: "7" ordena los resultados por quintas.
@@ -118,6 +121,7 @@ var gnuplot_fifths = {
 		gp_fifths = GNUPlot.new;
 		// Configuración general de las gráficas:
 		string = "set xlabel \"QUINTAS\"\n";
+		string = string ++ "set title \"QUINTAS JUSTAS\" font \"sans, 20\"\n";
 		string = string ++ "set ylabel \"TAMAÑO EN CENTS\"\n";
 		string = string ++ "set boxwidth 0.75 relative\n";
 		string = string ++ "set style fill solid 0.5\n";
