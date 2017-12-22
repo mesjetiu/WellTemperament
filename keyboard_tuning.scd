@@ -34,6 +34,12 @@ MIDIIn.connectAll;
 
 (
 
+// Variables con valores usados frecuentemente:
+
+var notes_name = ['C ','C#','D ','D#','E ','F ','F#','G ','G#','A ','A#','B '];
+var quinta_justa = (3/2).ratiomidi*100;
+var coma_pit = (quinta_justa * 12) - (700 * 12);
+
 // Teclas del teclado MIDI asociadas a funciones (pueden asociarse a conveniencia):
 var first_key = 36; // C1
 var last_key = 84;  // C5
@@ -60,6 +66,7 @@ var qs_midi_out; // Instancia de MIDIOut si "qsynth" está activado.
 var qs_semitono_bend = 4096; // valor en "bend" de un semitono (100 cents) (para Qsynth)
 
 // Opciones de GUI:
+var post_window = false;
 var freq_scope = false; // Analizador de espectro.
 var gnuplot = true; // Abre gráficas gnuplot de quintas y terceras. Requiere quark "GNUplot" y gnuplot en el sistema.
 var gp_fifths = nil;
@@ -83,8 +90,8 @@ var color_string = {arg color;
 // Devuelve el color de una quinta según su desviación de la quinta justa (string de un hexadecimal)
 var colorea_quinta = {arg quinta; // en cents
 	var color, desviacion, blend;
-	var max_desviacion = 11.8; // máxima desviación de la consonancia en cents -> 1/2 de coma sintónica
-	var consonance = ((3/2).ratiomidi*100);
+	var max_desviacion = coma_pit/2; // máxima desviación de la consonancia en cents -> 1/2 de coma sintónica
+	var consonance = quinta_justa;
 	desviacion = (consonance - quinta).abs;
 	blend = desviacion.linlin(0, max_desviacion, 0, 1);
 	color = Color.new(0,140).blend(Color.new(255),blend);
@@ -120,7 +127,7 @@ var gnuplot_fifths = {
 		string = string ++ "plot ";
 		string = string ++ "[] [660:730] "; // usando un rango específico para la coordeanda "y".
 		string = string ++ "\"" ++ File.getcwd ++ "/gnuplot_temp" ++ "\" " ++ "using 1:2:3 lc rgb variable " ++ "title " ++ "\"quintas temperamento actual\" " ++ "with boxes, ";
-		string = string ++ ((3/2).ratiomidi*100).asString ++ " title \"quinta justa\"\ with line linewidth 3, ";
+		string = string ++ quinta_justa.asString ++ " title \"quinta justa\"\ with line linewidth 3, ";
 		string = string ++ "700 title \"quinta ET12\" with line linewidth 3\n";
 		gp_fifths.sendCmd(string);
 	},{
@@ -131,41 +138,43 @@ var gnuplot_fifths = {
 
 // Muestra en pantalla la afinación actual
 var print_tuning = {arg round = 0.1;
-	var tn = tuning_notes;
-	var name = ['C ','C#','D ','D#','E ','F ','F#','G ','G#','A ','A#','B '];
-	"D. ET    | Quintas      | Terceras M.  | Terceras m.  ".postln;
-	"=========|==============|==============|==============".postln;
 
-	name.do({arg note, i;
-		var temp;
-		postln(
-			note ++ "= " ++ (tn[i]*100).round(round) ++
-			{var st = ""; (5-((tn[i]*100).round(round)).asString.size).do({st = st ++ " "}); st;
-			}.value ++ "| " ++
+	if (post_window == true, {
+		var tn = tuning_notes;
+		"D. ET    | Quintas      | Terceras M.  | Terceras m.  ".postln;
+		"=========|==============|==============|==============".postln;
 
-			note ++ "-" ++ name[(i+7).mod(12)] ++ "= " ++
-			(((tn[i+7]-tn[i]+7)-((3/2).ratiomidi)*100)).round(round) ++
-			{var st = "";
-				(6-((((tn[i+7]-tn[i]+7)-((3/2).ratiomidi)*100)).round(round)).asString.size).do({
-					st = st ++ " "
-				}); st;
-			}.value ++ "| " ++
+		notes_name.do({arg note, i;
+			var temp;
+			postln(
+				note ++ "= " ++ (tn[i]*100).round(round) ++
+				{var st = ""; (5-((tn[i]*100).round(round)).asString.size).do({st = st ++ " "}); st;
+				}.value ++ "| " ++
 
-			note ++ "-" ++ name[(i+4).mod(12)] ++ "= " ++
-			(((tn[i+4]-tn[i]+4)-((5/4).ratiomidi)*100)).round(round) ++
-			{var st = "";
-				(6-((((tn[i+4]-tn[i]+4)-((5/4).ratiomidi)*100)).round(round)).asString.size).do({
-					st = st ++ " "
-				}); st;
-			}.value ++ "| " ++
+				note ++ "-" ++ notes_name[(i+7).mod(12)] ++ "= " ++
+				(((tn[i+7]-tn[i]+7)-((3/2).ratiomidi)*100)).round(round) ++
+				{var st = "";
+					(6-((((tn[i+7]-tn[i]+7)-((3/2).ratiomidi)*100)).round(round)).asString.size).do({
+						st = st ++ " "
+					}); st;
+				}.value ++ "| " ++
 
-			note ++ "-" ++ name[(i+3).mod(12)] ++ "= " ++
-			(((tn[i+3]-tn[i]+3)-((6/5).ratiomidi)*100)).round(round);
+				note ++ "-" ++ notes_name[(i+4).mod(12)] ++ "= " ++
+				(((tn[i+4]-tn[i]+4)-((5/4).ratiomidi)*100)).round(round) ++
+				{var st = "";
+					(6-((((tn[i+4]-tn[i]+4)-((5/4).ratiomidi)*100)).round(round)).asString.size).do({
+						st = st ++ " "
+					}); st;
+				}.value ++ "| " ++
 
-		);
+				note ++ "-" ++ notes_name[(i+3).mod(12)] ++ "= " ++
+				(((tn[i+3]-tn[i]+3)-((6/5).ratiomidi)*100)).round(round);
+
+			);
+		});
+
+		"=========|==============|==============|==============".postln;
 	});
-
-	"=========|==============|==============|==============".postln;
 
 	if (gnuplot == true, {gnuplot_fifths.value});
 
