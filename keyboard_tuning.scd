@@ -74,6 +74,8 @@ var interval_12 = {arg interval, orden = 7; // El intervalo se mide en semitonos
 	array_cents;
 };
 
+
+// Devuelve un color en forma hexadecimal como String
 var color_string = {arg color;
 	"0x" ++ ((color.red.asInt<<16)+(color.green.asInt<<8)+color.blue.asInt).asHexString;
 };
@@ -118,8 +120,8 @@ var gnuplot_fifths = {
 		string = string ++ "plot ";
 		string = string ++ "[] [660:730] "; // usando un rango específico para la coordeanda "y".
 		string = string ++ "\"" ++ File.getcwd ++ "/gnuplot_temp" ++ "\" " ++ "using 1:2:3 lc rgb variable " ++ "title " ++ "\"quintas temperamento actual\" " ++ "with boxes, ";
-		string = string ++ ((3/2).ratiomidi*100).asString ++ " title \"quinta justa\"\ with line linewidth 2 linecolor rgb \"" ++ colorea_quinta.value((3/2).ratiomidi*100) ++ "\", ";
-		string = string ++ "700 title \"quinta ET12\" with line linewidth 2 linecolor rgb \"" ++ colorea_quinta.value(700) ++ "\"\n";
+		string = string ++ ((3/2).ratiomidi*100).asString ++ " title \"quinta justa\"\ with line linewidth 3, ";
+		string = string ++ "700 title \"quinta ET12\" with line linewidth 3\n";
 		gp_fifths.sendCmd(string);
 	},{
 		gp_fifths.sendCmd("replot");
