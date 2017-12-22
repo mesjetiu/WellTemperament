@@ -33,6 +33,7 @@ MIDIIn.connectAll;
 /// Carga todo el programa:
 
 (
+
 // Teclas del teclado MIDI asociadas a funciones (pueden asociarse a conveniencia):
 var first_key = 36; // C1
 var last_key = 84;  // C5
@@ -73,24 +74,33 @@ var interval_12 = {arg interval, orden = 7; // El intervalo se mide en semitonos
 	array_cents;
 };
 
+var color_string = {arg color;
+	"0x" ++ ((color.red.asInt<<16)+(color.green.asInt<<8)+color.blue.asInt).asHexString;
+};
+
+// Devuelve el color de una quinta según su desviación de la quinta justa (string de un hexadecimal)
+var colorea_quinta = {arg quinta; // en cents
+	var color, desviacion, blend;
+	var max_desviacion = 11.8; // máxima desviación de la consonancia en cents -> 1/2 de coma sintónica
+	var consonance = ((3/2).ratiomidi*100);
+	desviacion = (consonance - quinta).abs;
+	blend = desviacion.linlin(0, max_desviacion, 0, 1);
+	color = Color.new(0,140).blend(Color.new(255),blend);
+	color_string.value(color);
+};
+
+
 
 // Abre un gráfico de quintas en gnuplot.
 // TODO: en p. 57 de "gnuplot in action (2nd edition) se explica como hacer un multiplot con un ejemplo. Útil para graficar notas de la escala, quintas, terceras mayores y terceras menores.
+
 var gnuplot_fifths = {
 	var string, file;
-	var color;
-	var desviacion;
-	var blend;
-	var consonance = ((3/2).ratiomidi*100);
-	var max_desviacion = 11.8; // máxima desviación de la consonancia en cents -> 1/2 de coma sintónica
 
 	// Escribimos el archivo de datos temporal
 	file = File("gnuplot_temp","w");
 	interval_12.value(7, 7).do({arg i, index;
-		desviacion = (consonance - i).abs;
-		blend = desviacion.linlin(0, max_desviacion,0,1);
-		color = Color.new(0,140).blend(Color.new(255),blend);
-		file.write((index+1).asString ++ " " ++ i.asString ++ " " ++ "0x" ++ ((color.red.asInt<<16)+(color.green.asInt<<8)+color.blue.asInt).asHexString ++ "\n");
+		file.write((index+1).asString ++ " " ++ i.asString ++ " " ++ colorea_quinta.value(i) ++ "\n");
 	});
 	file.close;
 
@@ -102,14 +112,14 @@ var gnuplot_fifths = {
 		string = string ++ "set ylabel \"TAMAÑO EN CENTS\"\n";
 		string = string ++ "set boxwidth 0.75 relative\n";
 		string = string ++ "set style fill solid 0.5\n";
-		string = string ++ "set xtics (\"C-G\" 1, \"G-D\" 2, \"D-A\" 3, \"A-E\" 4, \"E-F#\" 5, \"B-F#\" 6, \"F#-C#\" 7, \"C#-G#\" 8, \"G#-D#\" 9, \"D#-A#\" 10, \"Bb-F\" 11, \"F-D\" 12)\n";
+		string = string ++ "set xtics (\"C\" 1, \"G\" 2, \"D\" 3, \"A\" 4, \"E\" 5, \"B\" 6, \"F#\" 7, \"C#\" 8, \"G#\" 9, \"D#\" 10, \"Bb\" 11, \"F\" 12)\n";
 
 		// Órdenes de gráficas separadas por comas:
 		string = string ++ "plot ";
 		string = string ++ "[] [660:730] "; // usando un rango específico para la coordeanda "y".
 		string = string ++ "\"" ++ File.getcwd ++ "/gnuplot_temp" ++ "\" " ++ "using 1:2:3 lc rgb variable " ++ "title " ++ "\"quintas temperamento actual\" " ++ "with boxes, ";
-		string = string ++ ((3/2).ratiomidi*100).asString ++ " title \"quinta justa\"\ with line linewidth 2, ";
-		string = string ++ "700 title \"quinta ET12\" with line linewidth 2 \n";
+		string = string ++ ((3/2).ratiomidi*100).asString ++ " title \"quinta justa\"\ with line linewidth 2 linecolor rgb \"" ++ colorea_quinta.value((3/2).ratiomidi*100) ++ "\", ";
+		string = string ++ "700 title \"quinta ET12\" with line linewidth 2 linecolor rgb \"" ++ colorea_quinta.value(700) ++ "\"\n";
 		gp_fifths.sendCmd(string);
 	},{
 		gp_fifths.sendCmd("replot");
