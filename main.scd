@@ -97,7 +97,7 @@ MIDIIn.connectAll;
 	var consonance = ~quinta_justa;
 	desviacion = (consonance - quinta).abs;
 	blend = desviacion.linlin(0, max_desviacion, 0, 1);
-	color = Color.new(0,140).blend(Color.new(255),blend);
+	color = Color.new(0,255).blend(Color.new(255),blend);
 	~color_string.value(color);
 };
 
