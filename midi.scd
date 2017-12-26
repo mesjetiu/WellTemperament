@@ -19,7 +19,6 @@ Este código es llamado desde "main.scd"
 
 // Estructura de datos para MIDI:
 ~notes = Array.newClear(128); // Array que almacena en cada tecla MIDI el sintetizador que suena al pulsarse la tecla. Se elimina al levantar la tecla.
-~qs_notes = Array.newClear(128); // Array como el anterior pero para uso de Qsynth
 ~tuning_notes = Array.fill(128,0); // Array que almacena en cada tecla MIDI la desviación en cents respecto a ET12.
 ~count_pushed_notes = 0; // Lleva el recuento de notas que están pulsadas.
 ~first_pushed_notes = Array.newClear(2); // Array que almacena las 2 primeras notas pulsadas. [0] se usa para afinar la primera nota pulsada. [0] y [1] se usan para realizar el reparto entre las quintas intermedias.
@@ -40,7 +39,7 @@ MIDIdef.noteOn(\tecla_on, {
 	});
 
 	if ((~notes[chan] == nil) && (~synth_internal != nil), {
-		~notes[chan] = Synth(\tono, [\freq, (chan+~tuning_notes[chan]).midicps]);
+		~notes[chan] = Synth(~synth_internal, [\freq, (chan+~tuning_notes[chan]).midicps]);
 	});
 
 	if (~count_pushed_notes == 0, {~first_pushed_notes[0] = chan});
