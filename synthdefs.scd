@@ -5,10 +5,13 @@ File: "synthdefs.scd"
 Este código es llamado desde "main.scd"
 */
 
+// Sintetizador a usasr:
+~synth_internal = \tono; // Si contiene el símbolo de un sintetizador de Supercollider, se usará para salida de sonido. Si es "nil" no sonará ningún sintetizador de Supercollider.
+
+
 
 
 // Definimos el sintetizador de notas. Consta de 10 armónicos, cada uno con un volumen independiente y modificable en tiempo real.
-
 SynthDef(\tono, {
 	arg freq = 440, amp = 0.5, gate = 1, har1=1, har2=0.5, har3=0.4, har4=0.2, har5=0.1, har6=0.1, har7=0.07, har8=0.06, har9=0.05, har10=0.04;
 	var sig, env, harm;

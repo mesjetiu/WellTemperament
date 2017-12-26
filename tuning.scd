@@ -5,7 +5,10 @@ File: "tuning.scd"
 Este código es llamado desde "main.scd"
 */
 
-
+// Variables
+~quinta_justa = (3/2).ratiomidi*100;
+~coma_pit = (~quinta_justa * 12) - (700 * 12);
+~tuning_notes = Array.fill(128,0); // Array que almacena en cada valor MIDI la desviación en cents respecto a ET12.
 
 // Aplica una diferencia de afinación en todas las octavas de una nota dada.
 ~retune_note = {arg note, dif_cents;
