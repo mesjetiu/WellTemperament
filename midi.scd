@@ -1,6 +1,6 @@
 /*
 Proyecto: "Well tempered"
-File: midi
+File: "midi.scd"
 
 Este código es llamado desde "main.scd"
 */

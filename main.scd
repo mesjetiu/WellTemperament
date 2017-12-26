@@ -25,14 +25,13 @@ OPCIONAL:
 s.boot;
 
 // Inicializamos MIDI
-MIDIClient.init;
-MIDIIn.connectAll;
-)
+if (MIDIClient.initialized == false, {
+	MIDIClient.init;
+	MIDIIn.connectAll;
+});
 
 
 /// Carga todo el programa:
-
-(
 
 // Variables con valores usados frecuentemente:
 ~notes_name = ['C ','C#','D ','D#','E ','F ','F#','G ','G#','A ','A#','B '];
@@ -43,11 +42,7 @@ MIDIIn.connectAll;
 // Sintetizador de Supercollider:
 ~synth_internal = \tono; // Si contiene el símbolo de un sintetizador de Supercollider, se usará para salida de sonido. Si es "nil" no sonará ningún sintetizador de Supercollider.
 
-// Sintetizador Qsynth:
-~qsynth = true; // Si "true", se usará Qsynth como sintetizador de sonido (asegurarse de que Qsynth está abierto).
-~qs_program = 0; // Instrumento elegido en Qsynth.
-~qs_midi_out; // Instancia de MIDIOut si "qsynth" está activado.
-~qs_semitono_bend = 4096; // valor en "bend" de un semitono (100 cents) (para Qsynth)
+
 
 // Opciones de GUI:
 ~post_window = false;
@@ -249,13 +244,6 @@ MIDIIn.connectAll;
 	});
 });
 
-// Activa un programa (instrumento) en el sintetizador qsynth
-~qs_change_program = {arg program;
-	10.do({arg chan; // polifonía de 10 notas máximo
-		~qs_midi_out.program(chan, program);
-	});
-};
-
 
 /// Funciones globales para acceso del usario
 
@@ -275,11 +263,7 @@ MIDIIn.connectAll;
 	~enter_tune.value([0,0,0,0,0,0,0,0,0,0,0,0]);
 };
 
-if (~qsynth == true, {
-	~qs_midi_out = MIDIOut(0);
-	~qs_midi_out.latency = 0;
-	~qs_change_program.value(~qs_program); // por defecto pone el programa 1 en qsynth.
-});
+
 
 /// FIN DE DECLARACIONES E INICIALIZACIONES DE VARIABLES////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -315,16 +299,7 @@ SynthDef(\tono, {
 
 
 "midi.scd".loadRelative;
+"qsynth.scd".loadRelative;
 
 ~print_tuning.value;
 )
-
-
-
-
-
-
-
-~enter_tune.value([1,3,20,1,0,-1,3,2,5,4,3,1]);
-
-~reset_tune.value;
