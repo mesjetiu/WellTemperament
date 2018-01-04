@@ -13,6 +13,8 @@ Este código es llamado desde "main.scd"
 ~freq_scope = false; // Analizador de espectro.
 ~gnuplot = true; // Abre gráficas gnuplot de quintas y terceras. Requiere quark "GNUplot" y gnuplot en el sistema.
 ~gp_fifths = nil;
+~gp_M_thirds = nil;
+~gp_m_thirds = nil;
 
 
 /// FUNCIONES
@@ -53,7 +55,7 @@ Este código es llamado desde "main.scd"
 	var string, file;
 
 	// Escribimos el archivo de datos temporal
-	file = File("gnuplot_temp","w");
+	file = File("\gnuplot_temp","w");
 	~interval_12.value(7, 7).do({arg i, index;
 		file.write((index+1).asString ++ " " ++ i.asString ++ " " ++ ~colorea_quinta.value(i) ++ "\n");
 	});
@@ -83,7 +85,82 @@ Este código es llamado desde "main.scd"
 };
 
 
-// Muestra en pantalla la afinación actual
+~gnuplot_M_thirds = {
+	var string, file;
+
+	// Escribimos el archivo de datos temporal
+	file = File("\gnuplot_temp2","w");
+	~interval_12.value(7, 7).do({arg i, index;
+		file.write((index+1).asString ++ " " ++ i.asString ++ " " ++ ~colorea_quinta.value(i) ++ "\n");
+	});
+	file.close;
+
+	// Si es la primera vez, enviamos toda la configuración a gnuplot. Si no, simplemente reploteamos.
+	if (~gp_M_thirds == nil, {
+		~gp_M_thirds = GNUPlot.new;
+		// Configuración general de las gráficas:
+		string = "set xlabel \"TERCERAS MAYORES\"\n";
+		string = string ++ "set title \"TERCERAS MAYORES\" font \"sans, 20\"\n";
+		string = string ++ "set ylabel \"TAMAÑO EN CENTS\"\n";
+		string = string ++ "set boxwidth 0.75 relative\n";
+		string = string ++ "set style fill solid 0.5\n";
+		string = string ++ "set xtics (\"C\" 1, \"G\" 2, \"D\" 3, \"A\" 4, \"E\" 5, \"B\" 6, \"F#\" 7, \"C#\" 8, \"G#\" 9, \"D#\" 10, \"Bb\" 11, \"F\" 12)\n";
+
+		// Órdenes de gráficas separadas por comas:
+		string = string ++ "plot ";
+		string = string ++ "[] [660:730] "; // usando un rango específico para la coordeanda "y".
+		string = string ++ "\"" ++ File.getcwd ++ "/gnuplot_temp2" ++ "\" " ++ "using 1:2:3 lc rgb variable " ++ "title " ++ "\"quintas temperamento actual\" " ++ "with boxes, ";
+		string = string ++ ~quinta_justa.asString ++ " title \"quinta justa\"\ with line linewidth 3, ";
+		string = string ++ "700 title \"quinta ET12\" with line linewidth 3\n";
+		~gp_M_thirds.sendCmd(string);
+	},{
+		~gp_M_thirds.sendCmd("replot");
+	});
+};
+
+
+~gnuplot_m_thirds = {
+	var string, file;
+
+	// Escribimos el archivo de datos temporal
+	file = File("\gnuplot_temp3","w");
+	~interval_12.value(7, 7).do({arg i, index;
+		file.write((index+1).asString ++ " " ++ i.asString ++ " " ++ ~colorea_quinta.value(i) ++ "\n");
+	});
+	file.close;
+
+	// Si es la primera vez, enviamos toda la configuración a gnuplot. Si no, simplemente reploteamos.
+	if (~gp_m_thirds == nil, {
+		~gp_m_thirds = GNUPlot.new;
+		// Configuración general de las gráficas:
+		string = "set xlabel \"TERCERAS MENORES\"\n";
+		string = string ++ "set title \"TERCERAS MENORES\" font \"sans, 20\"\n";
+		string = string ++ "set ylabel \"TAMAÑO EN CENTS\"\n";
+		string = string ++ "set boxwidth 0.75 relative\n";
+		string = string ++ "set style fill solid 0.5\n";
+		string = string ++ "set xtics (\"C\" 1, \"G\" 2, \"D\" 3, \"A\" 4, \"E\" 5, \"B\" 6, \"F#\" 7, \"C#\" 8, \"G#\" 9, \"D#\" 10, \"Bb\" 11, \"F\" 12)\n";
+
+		// Órdenes de gráficas separadas por comas:
+		string = string ++ "plot ";
+		string = string ++ "[] [660:730] "; // usando un rango específico para la coordeanda "y".
+		string = string ++ "\"" ++ File.getcwd ++ "/gnuplot_temp3" ++ "\" " ++ "using 1:2:3 lc rgb variable " ++ "title " ++ "\"quintas temperamento actual\" " ++ "with boxes, ";
+		string = string ++ ~quinta_justa.asString ++ " title \"quinta justa\"\ with line linewidth 3, ";
+		string = string ++ "700 title \"quinta ET12\" with line linewidth 3\n";
+		~gp_m_thirds.sendCmd(string);
+	},{
+		~gp_m_thirds.sendCmd("replot");
+	});
+};
+
+
+
+
+
+
+
+
+
+// Muestra en Pantalla la afinación actual (bien por gnuplot, bien por PostWindow
 ~print_tuning = {arg round = 0.1;
 
 	if (~post_window == true, {
@@ -124,5 +201,9 @@ Este código es llamado desde "main.scd"
 		"=========|==============|==============|==============".postln;
 	});
 
-	if (~gnuplot == true, {~gnuplot_fifths.value});
+	if (~gnuplot == true, {
+		~gnuplot_fifths.value;
+		~gnuplot_M_thirds.value;
+		~gnuplot_m_thirds.value;
+	});
 };
