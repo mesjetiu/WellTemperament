@@ -33,7 +33,7 @@ Este código es llamado desde "main.scd"
 };
 
 // Resetea la afinación de una nota a un valor de desviación concreto (por defecto "0")
-~reset_tune_note = {arg note, cents = 0;
+~reset_tuning_note = {arg note, cents = 0;
 	var octavas_bajas, octavas_altas;
 	if (~tune_octaves == true, {
 		octavas_bajas = (note,note-12..0);
@@ -95,11 +95,15 @@ Este código es llamado desde "main.scd"
 });
 
 
-/// Funciones globales para acceso del usario
+/// Funciones para acceso del usario
 
-~enter_tune = {arg array_tune;
+~enter_tuning = {arg array_tune;
+	if (array_tune.class.asString == "Tuning",{
+		array_tune = array_tune.cents - Tuning.et.cents;
+	});
+
 	array_tune.do({arg value, note;
-		~reset_tune_note.value(note, value);
+		~reset_tuning_note.value(note, value);
 	});
 	~notes.do({arg tono, index;
 		if (tono != nil, {
@@ -109,6 +113,6 @@ Este código es llamado desde "main.scd"
 	~print_tuning.value;
 };
 
-~reset_tune_TE12 = {
-	~enter_tune.value([0,0,0,0,0,0,0,0,0,0,0,0]);
+~reset_tuning_TE12 = {
+	~enter_tuning.value([0,0,0,0,0,0,0,0,0,0,0,0]);
 };
