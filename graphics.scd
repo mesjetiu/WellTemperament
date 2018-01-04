@@ -38,7 +38,7 @@ Este código es llamado desde "main.scd"
 // Devuelve el color de una quinta según su desviación de la quinta justa (string de un hexadecimal)
 ~colorea_quinta = {arg quinta; // en cents
 	var color, desviacion, blend;
-	var max_desviacion = ~coma_pit/2; // máxima desviación de la consonancia en cents -> 1/2 de coma sintónica
+	var max_desviacion = ~coma_pit/2; // máxima desviación de la consonancia en cents -> 1/2 de coma pitagórica
 	var consonance = ~quinta_justa;
 	desviacion = (consonance - quinta).abs;
 	blend = desviacion.linlin(0, max_desviacion, 0, 1);
@@ -46,6 +46,25 @@ Este código es llamado desde "main.scd"
 	~color_string.value(color);
 };
 
+~colorea_M_tercera = {arg tercera; //en cents
+	var color, desviacion, blend;
+	var max_desviacion = ~diesis_menor/2; // máxima desviación de la consonancia en cents -> 1/2 de coma sintónica
+	var consonance = ~tercera_M_justa;
+	desviacion = (consonance - tercera).abs;
+	blend = desviacion.linlin(0, max_desviacion, 0, 1);
+	color = Color.new(0,255).blend(Color.new(255),blend);
+	~color_string.value(color);
+};
+
+~colorea_m_tercera = {arg tercera; //en cents
+	var color, desviacion, blend;
+	var max_desviacion = ~diesis_menor/2; // máxima desviación de la consonancia en cents -> 1/2 de coma sintónica
+	var consonance = ~tercera_m_justa;
+	desviacion = (consonance - tercera).abs;
+	blend = desviacion.linlin(0, max_desviacion, 0, 1);
+	color = Color.new(0,255).blend(Color.new(255),blend);
+	~color_string.value(color);
+};
 
 
 // Abre un gráfico de quintas en gnuplot.
@@ -90,8 +109,8 @@ Este código es llamado desde "main.scd"
 
 	// Escribimos el archivo de datos temporal
 	file = File("\gnuplot_temp2","w");
-	~interval_12.value(7, 7).do({arg i, index;
-		file.write((index+1).asString ++ " " ++ i.asString ++ " " ++ ~colorea_quinta.value(i) ++ "\n");
+	~interval_12.value(4, 7).do({arg i, index;
+		file.write((index+1).asString ++ " " ++ i.asString ++ " " ++ ~colorea_M_tercera.value(i) ++ "\n");
 	});
 	file.close;
 
@@ -108,10 +127,10 @@ Este código es llamado desde "main.scd"
 
 		// Órdenes de gráficas separadas por comas:
 		string = string ++ "plot ";
-		string = string ++ "[] [660:730] "; // usando un rango específico para la coordeanda "y".
+		string = string ++ "[] [360:430] "; // usando un rango específico para la coordeanda "y".
 		string = string ++ "\"" ++ File.getcwd ++ "/gnuplot_temp2" ++ "\" " ++ "using 1:2:3 lc rgb variable " ++ "title " ++ "\"quintas temperamento actual\" " ++ "with boxes, ";
-		string = string ++ ~quinta_justa.asString ++ " title \"quinta justa\"\ with line linewidth 3, ";
-		string = string ++ "700 title \"quinta ET12\" with line linewidth 3\n";
+		string = string ++ ~tercera_M_justa.asString ++ " title \"tercera mayor justa\"\ with line linewidth 3, ";
+		string = string ++ "400 title \"tercera mayor ET12\" with line linewidth 3\n";
 		~gp_M_thirds.sendCmd(string);
 	},{
 		~gp_M_thirds.sendCmd("replot");
@@ -124,8 +143,8 @@ Este código es llamado desde "main.scd"
 
 	// Escribimos el archivo de datos temporal
 	file = File("\gnuplot_temp3","w");
-	~interval_12.value(7, 7).do({arg i, index;
-		file.write((index+1).asString ++ " " ++ i.asString ++ " " ++ ~colorea_quinta.value(i) ++ "\n");
+	~interval_12.value(3, 7).do({arg i, index;
+		file.write((index+1).asString ++ " " ++ i.asString ++ " " ++ ~colorea_m_tercera.value(i) ++ "\n");
 	});
 	file.close;
 
@@ -142,10 +161,10 @@ Este código es llamado desde "main.scd"
 
 		// Órdenes de gráficas separadas por comas:
 		string = string ++ "plot ";
-		string = string ++ "[] [660:730] "; // usando un rango específico para la coordeanda "y".
+		string = string ++ "[] [260:340] "; // usando un rango específico para la coordeanda "y".
 		string = string ++ "\"" ++ File.getcwd ++ "/gnuplot_temp3" ++ "\" " ++ "using 1:2:3 lc rgb variable " ++ "title " ++ "\"quintas temperamento actual\" " ++ "with boxes, ";
-		string = string ++ ~quinta_justa.asString ++ " title \"quinta justa\"\ with line linewidth 3, ";
-		string = string ++ "700 title \"quinta ET12\" with line linewidth 3\n";
+		string = string ++ ~tercera_m_justa.asString ++ " title \"tercera menor justa\"\ with line linewidth 3, ";
+		string = string ++ "300 title \"tercera menor ET12\" with line linewidth 3\n";
 		~gp_m_thirds.sendCmd(string);
 	},{
 		~gp_m_thirds.sendCmd("replot");

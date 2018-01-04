@@ -7,7 +7,11 @@ Este código es llamado desde "main.scd"
 
 // Variables
 ~quinta_justa = (3/2).ratiomidi*100;
+~tercera_M_justa = (5/4).ratiomidi*100;
+~tercera_m_justa = (6/5).ratiomidi*100;
 ~coma_pit = (~quinta_justa * 12) - (700 * 12);
+~coma_sint = (((3/2)**4)/(2**2)/(5/4)).ratiomidi*100;
+~diesis_menor = ~coma_sint*3;
 ~tuning_notes = Array.fill(128,0); // Array que almacena en cada valor MIDI la desviación en cents respecto a ET12.
 
 // Aplica una diferencia de afinación en todas las octavas de una nota dada.
